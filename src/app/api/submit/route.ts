@@ -6,6 +6,14 @@ import { resolveIntent, type IntentMode } from '@/lib/classify';
 
 export const dynamic = 'force-dynamic';
 
+function geminiErrorMessage(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/API key/i.test(msg) || /API_KEY/i.test(msg)) return 'Gemini API ключ не работает. Проверь GEMINI_API_KEY в .env';
+  if (/quota/i.test(msg) || /rate/i.test(msg)) return 'Превышен лимит Gemini API. Подожди минуту и попробуй ещё раз';
+  if (/network|fetch|ECONNREFUSED|ETIMEDOUT/i.test(msg)) return 'Сеть не отвечает. Проверь подключение сервера к интернету';
+  return `Ошибка Gemini: ${msg}`;
+}
+
 export async function POST(req: Request) {
   const { userId } = await requireSession();
   const body = await req.json().catch(() => null);
@@ -19,37 +27,42 @@ export async function POST(req: Request) {
   const force: boolean = body.force === true;
 
   if (intent === 'question') {
-    const queryEmbedding = await embedQuery(text);
-    const vec = toVectorLiteral(queryEmbedding);
-    const { rows: thoughts } = await pool.query(
-      `SELECT id, content, created_at,
-              1 - (embedding <=> $1::vector) AS similarity
-         FROM thoughts
-        WHERE user_id = $2 AND embedding IS NOT NULL
-        ORDER BY embedding <=> $1::vector
-        LIMIT 5`,
-      [vec, userId],
-    );
-    const relevant = thoughts.filter((t) => Number(t.similarity) >= 0.45);
-    const answer = await answerFromThoughts({
-      question: text,
-      thoughts: relevant.map((t) => ({
-        id: t.id,
-        content: t.content,
-        created_at: t.created_at,
-        similarity: Number(t.similarity),
-      })),
-    });
-    return NextResponse.json({
-      intent: 'question',
-      answer,
-      sources: relevant.map((t) => ({
-        id: t.id,
-        content: t.content,
-        created_at: t.created_at,
-        similarity: Number(t.similarity),
-      })),
-    });
+    try {
+      const queryEmbedding = await embedQuery(text);
+      const vec = toVectorLiteral(queryEmbedding);
+      const { rows: thoughts } = await pool.query(
+        `SELECT id, content, created_at,
+                1 - (embedding <=> $1::vector) AS similarity
+           FROM thoughts
+          WHERE user_id = $2 AND embedding IS NOT NULL
+          ORDER BY embedding <=> $1::vector
+          LIMIT 5`,
+        [vec, userId],
+      );
+      const relevant = thoughts.filter((t) => Number(t.similarity) >= 0.45);
+      const answer = await answerFromThoughts({
+        question: text,
+        thoughts: relevant.map((t) => ({
+          id: t.id,
+          content: t.content,
+          created_at: t.created_at,
+          similarity: Number(t.similarity),
+        })),
+      });
+      return NextResponse.json({
+        intent: 'question',
+        answer,
+        sources: relevant.map((t) => ({
+          id: t.id,
+          content: t.content,
+          created_at: t.created_at,
+          similarity: Number(t.similarity),
+        })),
+      });
+    } catch (e) {
+      console.error('submit question error:', e);
+      return NextResponse.json({ intent: 'question', error: geminiErrorMessage(e) }, { status: 502 });
+    }
   }
 
   // intent === 'thought'
@@ -57,7 +70,13 @@ export async function POST(req: Request) {
     ? body.tags.filter((t: unknown): t is string => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean)
     : [];
 
-  const embedding = await embed(text);
+  let embedding: number[];
+  try {
+    embedding = await embed(text);
+  } catch (e) {
+    console.error('submit thought embed error:', e);
+    return NextResponse.json({ intent: 'thought', error: geminiErrorMessage(e) }, { status: 502 });
+  }
   const vec = toVectorLiteral(embedding);
 
   const threshold = Number(process.env.DUPLICATE_THRESHOLD ?? '0.85');

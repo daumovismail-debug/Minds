@@ -6,6 +6,8 @@ import { classify, type Intent } from '@/lib/classify';
 import { ArrowUpIcon, CheckIcon, SparkleIcon } from './icons';
 import type { ThoughtItem } from './ThoughtCard';
 
+type Mode = 'auto' | Intent;
+
 type Source = {
   id: number;
   content: string;
@@ -40,9 +42,17 @@ const ACTION_LABEL: Record<Intent, string> = {
   task: 'добавлю в задачи',
 };
 
+const MODE_CHIPS: Array<{ key: Mode; label: string; active: string }> = [
+  { key: 'auto', label: 'авто', active: 'bg-white/10 text-white' },
+  { key: 'thought', label: '💭 мысль', active: 'bg-accent/25 text-accent-soft' },
+  { key: 'task', label: '📋 задача', active: 'bg-amber-400/20 text-amber-200' },
+  { key: 'question', label: '❓ вопрос', active: 'bg-sky-400/20 text-sky-200' },
+];
+
 export function SmartInput({ onItemAdded }: Props) {
   const router = useRouter();
   const [text, setText] = useState('');
+  const [mode, setMode] = useState<Mode>('auto');
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<AnswerState | null>(null);
   const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
@@ -50,7 +60,7 @@ export function SmartInput({ onItemAdded }: Props) {
   const [saved, setSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const intent: Intent = text.trim() ? classify(text) : 'thought';
+  const detected: Intent = mode !== 'auto' ? mode : text.trim() ? classify(text) : 'thought';
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -76,7 +86,7 @@ export function SmartInput({ onItemAdded }: Props) {
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: t, force }),
+        body: JSON.stringify({ text: t, mode, force }),
       });
 
       if (res.status === 401) {
@@ -102,6 +112,7 @@ export function SmartInput({ onItemAdded }: Props) {
       } else {
         onItemAdded(data.thought);
         setText('');
+        setMode('auto');
         setSaved(true);
       }
     } catch (e) {
@@ -112,11 +123,29 @@ export function SmartInput({ onItemAdded }: Props) {
   }
 
   const showHint = text.trim().length > 0;
-  const intentMeta = INTENT_LABEL[intent];
+  const intentMeta = INTENT_LABEL[detected];
 
   return (
     <div className="w-full">
-      <div className="relative rounded-3xl bg-ink-900/60 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/30 transition-all focus-within:border-accent/40 focus-within:shadow-accent/10">
+      {/* Mode chips */}
+      <div className="flex items-center justify-center gap-1 mb-3 text-xs flex-wrap">
+        {MODE_CHIPS.map((chip) => {
+          const isActive = mode === chip.key;
+          return (
+            <button
+              key={chip.key}
+              onClick={() => setMode(chip.key)}
+              className={`px-3 py-1.5 rounded-full transition-all ${
+                isActive ? chip.active : 'text-ink-400 hover:text-ink-200 hover:bg-white/5'
+              }`}
+            >
+              {chip.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="relative rounded-3xl bg-white/[0.06] backdrop-blur-xl border border-white/15 shadow-2xl shadow-black/30 transition-all focus-within:bg-white/[0.08] focus-within:border-accent/50 focus-within:shadow-accent/10">
         <textarea
           ref={textareaRef}
           value={text}
@@ -138,7 +167,7 @@ export function SmartInput({ onItemAdded }: Props) {
               <span className="truncate animate-fade-in flex items-center gap-1.5">
                 <SparkleIcon size={11} className={intentMeta.color} />
                 <span className={intentMeta.color}>{intentMeta.label}</span>
-                <span className="text-ink-500">— {ACTION_LABEL[intent]}</span>
+                <span className="text-ink-500">— {ACTION_LABEL[detected]}</span>
               </span>
             ) : (
               <span className="hidden sm:inline">Enter — отправить · Shift+Enter — новая строка</span>

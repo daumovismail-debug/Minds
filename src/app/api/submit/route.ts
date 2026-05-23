@@ -30,7 +30,11 @@ export async function POST(req: Request) {
   }
 
   const text = body.text.trim();
-  const intent = classify(text);
+  const manualMode = body.mode;
+  const intent =
+    manualMode === 'thought' || manualMode === 'question' || manualMode === 'task'
+      ? manualMode
+      : classify(text);
   const force: boolean = body.force === true;
 
   if (intent === 'question') {
@@ -41,7 +45,7 @@ export async function POST(req: Request) {
         `SELECT id, content, kind, done, created_at,
                 1 - (embedding <=> $1::vector) AS similarity
            FROM thoughts
-          WHERE user_id = $2 AND embedding IS NOT NULL
+          WHERE user_id = $2 AND kind = 'thought' AND embedding IS NOT NULL
           ORDER BY embedding <=> $1::vector
           LIMIT 6`,
         [vec, userId],

@@ -3,7 +3,8 @@ import { q, toVectorLiteral } from '@/lib/db';
 import { embed, embedQuery } from '@/lib/embeddings';
 import { answerFromThoughts } from '@/lib/llm';
 import { getCurrentSession } from '@/lib/auth';
-import { classify } from '@/lib/classify';
+import { classify, isUrgent } from '@/lib/classify';
+import { parseListQuery } from '@/lib/list-parser';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,10 +33,49 @@ export async function POST(req: Request) {
   const text = body.text.trim();
   const manualMode = body.mode;
   const intent =
-    manualMode === 'thought' || manualMode === 'question' || manualMode === 'task'
+    manualMode === 'thought' || manualMode === 'question' || manualMode === 'task' || manualMode === 'list'
       ? manualMode
       : classify(text);
   const force: boolean = body.force === true;
+
+  if (intent === 'list') {
+    const lq = parseListQuery(text);
+    const conditions: string[] = ['user_id = $1'];
+    const params: unknown[] = [userId];
+
+    if (lq.kind !== 'all') {
+      params.push(lq.kind);
+      conditions.push(`kind = $${params.length}`);
+    }
+    if (lq.urgent) {
+      conditions.push(`urgent = TRUE`);
+    }
+    if (lq.done !== undefined) {
+      params.push(lq.done);
+      conditions.push(`done = $${params.length}`);
+    }
+    if (lq.dateFrom) {
+      params.push(lq.dateFrom.toISOString());
+      conditions.push(`created_at >= $${params.length}`);
+    }
+    if (lq.dateTo) {
+      params.push(lq.dateTo.toISOString());
+      conditions.push(`created_at < $${params.length}`);
+    }
+
+    const sql = `SELECT id, content, tags, kind, done, urgent, due_at, created_at, updated_at
+                   FROM thoughts
+                  WHERE ${conditions.join(' AND ')}
+                  ORDER BY urgent DESC, done ASC, created_at DESC
+                  LIMIT 100`;
+    const { rows } = await q(sql, params);
+
+    return NextResponse.json({
+      intent: 'list',
+      query: { description: lq.description },
+      items: rows,
+    });
+  }
 
   if (intent === 'question') {
     try {
@@ -82,7 +122,7 @@ export async function POST(req: Request) {
   if (intent === 'thought' && !force) {
     const threshold = Number(process.env.DUPLICATE_THRESHOLD ?? '0.85');
     const { rows: similar } = await q(
-      `SELECT id, content, tags, kind, done, due_at, created_at, updated_at,
+      `SELECT id, content, tags, kind, done, urgent, due_at, created_at, updated_at,
               1 - (embedding <=> $1::vector) AS similarity
          FROM thoughts
         WHERE user_id = $2 AND kind = 'thought' AND embedding IS NOT NULL
@@ -104,11 +144,13 @@ export async function POST(req: Request) {
     }
   }
 
+  const urgent = intent === 'task' && isUrgent(text);
+
   const { rows } = await q(
-    `INSERT INTO thoughts (user_id, content, kind, embedding)
-     VALUES ($1, $2, $3, $4::vector)
-     RETURNING id, content, tags, kind, done, due_at, created_at, updated_at`,
-    [userId, text, intent, vec],
+    `INSERT INTO thoughts (user_id, content, kind, urgent, embedding)
+     VALUES ($1, $2, $3, $4, $5::vector)
+     RETURNING id, content, tags, kind, done, urgent, due_at, created_at, updated_at`,
+    [userId, text, intent, urgent, vec],
   );
 
   return NextResponse.json({ intent, thought: rows[0] }, { status: 201 });

@@ -47,6 +47,9 @@ async function runMigrations(): Promise<void> {
   );
   await pool.query(`ALTER TABLE thoughts ADD COLUMN IF NOT EXISTS due_at TIMESTAMPTZ`);
   await pool.query(
+    `ALTER TABLE thoughts ADD COLUMN IF NOT EXISTS urgent BOOLEAN NOT NULL DEFAULT FALSE`,
+  );
+  await pool.query(
     `CREATE INDEX IF NOT EXISTS thoughts_user_idx ON thoughts (user_id, created_at DESC)`,
   );
   await pool.query(
@@ -80,6 +83,7 @@ export type Thought = {
   tags: string[];
   kind: Kind;
   done: boolean;
+  urgent: boolean;
   due_at: string | null;
   created_at: string;
   updated_at: string;

@@ -38,7 +38,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { rows } = await q(
       `UPDATE thoughts SET done = $1, updated_at = NOW()
         WHERE id = $2 AND user_id = $3
-        RETURNING id, content, tags, kind, done, due_at, created_at, updated_at`,
+        RETURNING id, content, tags, kind, done, urgent, due_at, created_at, updated_at`,
       [body.done, id, userId],
     );
     if (rows.length === 0) return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -62,7 +62,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       `UPDATE thoughts
           SET content = $1, tags = $2, embedding = $3::vector, updated_at = NOW()
         WHERE id = $4 AND user_id = $5
-        RETURNING id, content, tags, kind, done, due_at, created_at, updated_at`,
+        RETURNING id, content, tags, kind, done, urgent, due_at, created_at, updated_at`,
       [content, tags, vec, id, userId],
     );
 

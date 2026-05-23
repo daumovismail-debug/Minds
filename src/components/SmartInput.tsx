@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { classify, type Intent } from '@/lib/classify';
 import { ArrowUpIcon, CheckIcon, SparkleIcon } from './icons';
-import type { ThoughtItem } from './ThoughtCard';
+import { ThoughtCard, type ThoughtItem } from './ThoughtCard';
 
 type Mode = 'auto' | Intent;
 
@@ -26,6 +26,12 @@ type AnswerState = {
   sources: Source[];
 };
 
+type ListState = {
+  query: string;
+  description: string;
+  items: ThoughtItem[];
+};
+
 type Props = {
   onItemAdded: (t: ThoughtItem) => void;
 };
@@ -34,12 +40,14 @@ const INTENT_LABEL: Record<Intent, { label: string; color: string }> = {
   thought: { label: 'мысль', color: 'text-accent-soft' },
   question: { label: 'вопрос', color: 'text-sky-300' },
   task: { label: 'задача', color: 'text-amber-300' },
+  list: { label: 'список', color: 'text-emerald-300' },
 };
 
 const ACTION_LABEL: Record<Intent, string> = {
   thought: 'сохраню как мысль',
   question: 'найду ответ в твоих записях',
   task: 'добавлю в задачи',
+  list: 'покажу выборку',
 };
 
 const MODE_CHIPS: Array<{ key: Mode; label: string; active: string }> = [
@@ -55,6 +63,7 @@ export function SmartInput({ onItemAdded }: Props) {
   const [mode, setMode] = useState<Mode>('auto');
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<AnswerState | null>(null);
+  const [list, setList] = useState<ListState | null>(null);
   const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -75,13 +84,18 @@ export function SmartInput({ onItemAdded }: Props) {
     return () => clearTimeout(t);
   }, [saved]);
 
+  function clearResults() {
+    setAnswer(null);
+    setList(null);
+    setDuplicate(null);
+    setError(null);
+  }
+
   async function submit(force = false) {
     const t = text.trim();
     if (!t || loading) return;
     setLoading(true);
-    setDuplicate(null);
-    setError(null);
-    if (!force) setAnswer(null);
+    if (!force) clearResults();
     try {
       const res = await fetch('/api/submit', {
         method: 'POST',
@@ -109,6 +123,12 @@ export function SmartInput({ onItemAdded }: Props) {
 
       if (data.intent === 'question') {
         setAnswer({ question: t, answer: data.answer, sources: data.sources ?? [] });
+      } else if (data.intent === 'list') {
+        setList({
+          query: t,
+          description: data.query?.description ?? '',
+          items: data.items ?? [],
+        });
       } else {
         onItemAdded(data.thought);
         setText('');
@@ -122,12 +142,23 @@ export function SmartInput({ onItemAdded }: Props) {
     }
   }
 
+  function updateListItem(updated: ThoughtItem) {
+    setList((prev) =>
+      prev
+        ? { ...prev, items: prev.items.map((x) => (x.id === updated.id ? { ...x, ...updated } : x)) }
+        : prev,
+    );
+  }
+
+  function removeListItem(id: number) {
+    setList((prev) => (prev ? { ...prev, items: prev.items.filter((x) => x.id !== id) } : prev));
+  }
+
   const showHint = text.trim().length > 0;
   const intentMeta = INTENT_LABEL[detected];
 
   return (
     <div className="w-full">
-      {/* Mode chips */}
       <div className="flex items-center justify-center gap-1 mb-3 text-xs flex-wrap">
         {MODE_CHIPS.map((chip) => {
           const isActive = mode === chip.key;
@@ -150,7 +181,7 @@ export function SmartInput({ onItemAdded }: Props) {
           ref={textareaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Запиши мысль, задачу или задай вопрос…"
+          placeholder="Запиши мысль, задачу, задай вопрос или попроси показать…"
           rows={1}
           className="w-full bg-transparent border-0 outline-none resize-none px-5 pt-4 pb-2 text-[16px] leading-relaxed text-ink-50 placeholder:text-ink-500"
           onKeyDown={(e) => {
@@ -274,6 +305,40 @@ export function SmartInput({ onItemAdded }: Props) {
               Закрыть
             </button>
           </div>
+        </div>
+      )}
+
+      {list && (
+        <div className="mt-4 animate-slide-up">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-ink-400 flex items-center gap-1.5">
+              <SparkleIcon size={11} className="text-emerald-300" />
+              <span>{list.description || list.query}</span>
+              <span className="text-ink-500">· {list.items.length}</span>
+            </div>
+            <button
+              className="text-xs px-2 py-1 rounded text-ink-400 hover:text-ink-100 hover:bg-white/5"
+              onClick={() => setList(null)}
+            >
+              закрыть
+            </button>
+          </div>
+          {list.items.length === 0 ? (
+            <div className="rounded-2xl bg-ink-800/50 border border-white/10 p-6 text-center text-sm text-ink-400">
+              Ничего не нашлось по этому запросу
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {list.items.map((item) => (
+                <ThoughtCard
+                  key={item.id}
+                  item={item}
+                  onDelete={removeListItem}
+                  onUpdate={updateListItem}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

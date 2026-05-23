@@ -9,6 +9,7 @@ export type ThoughtItem = {
   tags: string[];
   kind: 'thought' | 'task';
   done: boolean;
+  urgent: boolean;
   due_at: string | null;
   created_at: string;
   updated_at: string;
@@ -36,6 +37,7 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
 
   const isTask = item.kind === 'task';
   const isDone = item.done;
+  const isUrgent = isTask && item.urgent && !isDone;
 
   async function save() {
     setSaving(true);
@@ -82,11 +84,13 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
   return (
     <div
       className={`group relative rounded-2xl border transition-all duration-200 ${
-        isTask
-          ? isDone
-            ? 'bg-ink-900/30 border-white/5'
-            : 'bg-ink-900/50 border-amber-400/15 hover:border-amber-400/30'
-          : 'bg-ink-900/50 border-white/10 hover:border-white/20'
+        isUrgent
+          ? 'bg-red-500/10 border-red-400/40 hover:border-red-400/60 shadow-red-500/10'
+          : isTask
+            ? isDone
+              ? 'bg-ink-900/30 border-white/5'
+              : 'bg-ink-900/50 border-amber-400/15 hover:border-amber-400/30'
+            : 'bg-ink-900/50 border-white/10 hover:border-white/20'
       } backdrop-blur-md p-4 shadow-lg shadow-black/10`}
     >
       <div className="flex items-start gap-3">
@@ -108,9 +112,14 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 text-xs text-ink-400">
             <span>{formatDate(item.created_at)}</span>
-            {isTask && !isDone && (
+            {isTask && !isDone && !isUrgent && (
               <span className="px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 text-[10px] uppercase tracking-wider font-medium">
                 задача
+              </span>
+            )}
+            {isUrgent && (
+              <span className="px-1.5 py-0.5 rounded bg-red-500/25 text-red-200 text-[10px] uppercase tracking-wider font-semibold animate-pulse">
+                срочно
               </span>
             )}
             {typeof item.similarity === 'number' && (

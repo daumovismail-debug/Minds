@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const queryEmbedding = await embed(search);
     const vec = toVectorLiteral(queryEmbedding);
     const { rows } = await q(
-      `SELECT id, content, tags, kind, done, due_at, created_at, updated_at,
+      `SELECT id, content, tags, kind, done, urgent, due_at, created_at, updated_at,
               1 - (embedding <=> $1::vector) AS similarity
          FROM thoughts
         WHERE user_id = $2 AND embedding IS NOT NULL
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
   }
 
   const { rows } = await q<Thought>(
-    `SELECT id, content, tags, kind, done, due_at, created_at, updated_at
+    `SELECT id, content, tags, kind, done, urgent, due_at, created_at, updated_at
        FROM thoughts
       WHERE user_id = $1
       ORDER BY done ASC, created_at DESC

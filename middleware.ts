@@ -11,7 +11,7 @@ async function isAuthed(req: NextRequest): Promise<boolean> {
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
     if (typeof payload.userId !== 'number') return false;
-    if (typeof payload.email !== 'string') return false;
+    if (typeof payload.username !== 'string') return false;
     return true;
   } catch {
     return false;

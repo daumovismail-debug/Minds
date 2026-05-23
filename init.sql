@@ -1,0 +1,17 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE IF NOT EXISTS thoughts (
+  id SERIAL PRIMARY KEY,
+  content TEXT NOT NULL,
+  tags TEXT[] NOT NULL DEFAULT '{}',
+  embedding vector(768),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS thoughts_embedding_idx
+  ON thoughts USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+
+CREATE INDEX IF NOT EXISTS thoughts_created_at_idx
+  ON thoughts (created_at DESC);

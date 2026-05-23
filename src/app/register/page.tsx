@@ -5,14 +5,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const ERRORS: Record<string, string> = {
-  invalid_email: 'Введи корректный email',
-  password_too_short: 'Пароль должен быть минимум 6 символов',
+  invalid_username: 'Введи логин',
+  username_too_short: 'Логин минимум 3 символа',
+  username_too_long: 'Логин максимум 32 символа',
+  username_invalid_chars: 'Логин: только латиница, цифры и _',
+  password_too_short: 'Пароль минимум 6 символов',
   password_too_long: 'Слишком длинный пароль',
-  email_taken: 'Этот email уже зарегистрирован',
+  username_taken: 'Этот логин уже занят',
 };
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [password2, setPassword2] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +34,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -55,16 +58,20 @@ export default function RegisterPage() {
           <p className="mt-1 text-sm text-ink-300">Создай аккаунт</p>
         </div>
 
-        <label className="block text-sm text-ink-200 mb-1">Email</label>
+        <label className="block text-sm text-ink-200 mb-1">Логин</label>
         <input
-          type="email"
-          className="input mb-3"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          type="text"
+          className="input mb-1"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           autoFocus
-          autoComplete="email"
+          autoComplete="username"
+          pattern="[a-zA-Z0-9_]{3,32}"
+          minLength={3}
+          maxLength={32}
           required
         />
+        <div className="text-xs text-ink-500 mb-3">3–32 символа, латиница, цифры, _</div>
 
         <label className="block text-sm text-ink-200 mb-1">Пароль</label>
         <input

@@ -1,21 +1,27 @@
 import { NextResponse } from 'next/server';
 import { pool, toVectorLiteral } from '@/lib/db';
 import { answerFromThoughts, embed, embedQuery } from '@/lib/gemini';
-import { requireSession } from '@/lib/auth';
+import { getCurrentSession } from '@/lib/auth';
 import { resolveIntent, type IntentMode } from '@/lib/classify';
 
 export const dynamic = 'force-dynamic';
 
 function geminiErrorMessage(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
-  if (/API key/i.test(msg) || /API_KEY/i.test(msg)) return 'Gemini API ключ не работает. Проверь GEMINI_API_KEY в .env';
-  if (/quota/i.test(msg) || /rate/i.test(msg)) return 'Превышен лимит Gemini API. Подожди минуту и попробуй ещё раз';
-  if (/network|fetch|ECONNREFUSED|ETIMEDOUT/i.test(msg)) return 'Сеть не отвечает. Проверь подключение сервера к интернету';
+  if (/API key/i.test(msg) || /API_KEY/i.test(msg))
+    return 'Gemini API ключ не работает. Проверь GEMINI_API_KEY в .env';
+  if (/quota/i.test(msg) || /rate/i.test(msg))
+    return 'Превышен лимит Gemini API. Подожди минуту и попробуй ещё раз';
+  if (/network|fetch|ECONNREFUSED|ETIMEDOUT/i.test(msg))
+    return 'Сеть не отвечает. Проверь подключение сервера к интернету';
   return `Ошибка Gemini: ${msg}`;
 }
 
 export async function POST(req: Request) {
-  const { userId } = await requireSession();
+  const session = await getCurrentSession();
+  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const userId = session.userId;
+
   const body = await req.json().catch(() => null);
   if (!body || typeof body.text !== 'string' || !body.text.trim()) {
     return NextResponse.json({ error: 'text_required' }, { status: 400 });
@@ -67,7 +73,10 @@ export async function POST(req: Request) {
 
   // intent === 'thought'
   const tags: string[] = Array.isArray(body.tags)
-    ? body.tags.filter((t: unknown): t is string => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean)
+    ? body.tags
+        .filter((t: unknown): t is string => typeof t === 'string')
+        .map((t: string) => t.trim())
+        .filter(Boolean)
     : [];
 
   let embedding: number[];

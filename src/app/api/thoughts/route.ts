@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { pool, toVectorLiteral, type Thought } from '@/lib/db';
 import { embed } from '@/lib/gemini';
-import { requireSession } from '@/lib/auth';
+import { getCurrentSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
-  const { userId } = await requireSession();
+  const session = await getCurrentSession();
+  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { userId } = session;
+
   const url = new URL(req.url);
   const q = url.searchParams.get('q')?.trim();
 
@@ -37,7 +40,10 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const { userId } = await requireSession();
+  const session = await getCurrentSession();
+  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { userId } = session;
+
   const body = await req.json().catch(() => null);
   if (!body || typeof body.content !== 'string' || !body.content.trim()) {
     return NextResponse.json({ error: 'content_required' }, { status: 400 });
@@ -45,7 +51,10 @@ export async function POST(req: Request) {
 
   const content = body.content.trim();
   const tags: string[] = Array.isArray(body.tags)
-    ? body.tags.filter((t: unknown): t is string => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean)
+    ? body.tags
+        .filter((t: unknown): t is string => typeof t === 'string')
+        .map((t: string) => t.trim())
+        .filter(Boolean)
     : [];
   const force: boolean = body.force === true;
 

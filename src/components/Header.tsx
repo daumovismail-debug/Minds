@@ -2,9 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 
-type Props = { email?: string };
+type Props = { username?: string };
 
-export function Header({ email }: Props) {
+export function Header({ username }: Props) {
   const router = useRouter();
 
   async function logout() {
@@ -23,7 +23,7 @@ export function Header({ email }: Props) {
           <div className="font-semibold tracking-tight">Minds</div>
         </div>
         <div className="flex items-center gap-3">
-          {email && <div className="text-xs text-ink-400 hidden sm:block">{email}</div>}
+          {username && <div className="text-xs text-ink-400 hidden sm:block">@{username}</div>}
           <button onClick={logout} className="btn-ghost text-xs">
             Выйти
           </button>

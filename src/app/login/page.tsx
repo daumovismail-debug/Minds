@@ -5,7 +5,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function LoginForm() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -20,11 +20,11 @@ function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error === 'invalid_credentials' ? 'Неверный email или пароль' : 'Ошибка входа');
+        setError(data.error === 'invalid_credentials' ? 'Неверный логин или пароль' : 'Ошибка входа');
         return;
       }
       const next = params.get('next') ?? '/';
@@ -44,12 +44,12 @@ function LoginForm() {
         <p className="mt-1 text-sm text-ink-300">Твой второй мозг</p>
       </div>
 
-      <label className="block text-sm text-ink-200 mb-1">Email</label>
+      <label className="block text-sm text-ink-200 mb-1">Логин</label>
       <input
-        type="email"
+        type="text"
         className="input mb-3"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
         autoFocus
         autoComplete="username"
         required

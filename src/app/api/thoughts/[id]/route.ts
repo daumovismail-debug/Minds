@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { pool, toVectorLiteral } from '@/lib/db';
 import { embed } from '@/lib/gemini';
-import { requireSession } from '@/lib/auth';
+import { getCurrentSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId } = await requireSession();
+  const session = await getCurrentSession();
+  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { userId } = session;
+
   const { id: rawId } = await params;
   const id = Number(rawId);
   if (!Number.isFinite(id)) {
@@ -17,7 +20,10 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { userId } = await requireSession();
+  const session = await getCurrentSession();
+  if (!session) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { userId } = session;
+
   const { id: rawId } = await params;
   const id = Number(rawId);
   if (!Number.isFinite(id)) {
@@ -31,7 +37,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const content = body.content.trim();
   const tags: string[] = Array.isArray(body.tags)
-    ? body.tags.filter((t: unknown): t is string => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean)
+    ? body.tags
+        .filter((t: unknown): t is string => typeof t === 'string')
+        .map((t: string) => t.trim())
+        .filter(Boolean)
     : [];
 
   const embedding = await embed(content);

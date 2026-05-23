@@ -6,7 +6,7 @@ export default async function HomePage() {
   const session = await getCurrentSession();
   return (
     <>
-      <Header email={session?.email} />
+      <Header username={session?.username} />
       <main className="max-w-3xl mx-auto px-4 py-6">
         <ThoughtsFeed />
       </main>

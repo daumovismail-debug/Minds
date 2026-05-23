@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSession, setSessionCookie } from '@/lib/auth';
-import { createUser, findUserByEmail, validateEmail, validatePassword } from '@/lib/users';
+import { createUser, findUserByUsername, validatePassword, validateUsername } from '@/lib/users';
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -8,19 +8,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_body' }, { status: 400 });
   }
 
-  const emailErr = validateEmail(body.email);
-  if (emailErr) return NextResponse.json({ error: emailErr }, { status: 400 });
+  const uErr = validateUsername(body.username);
+  if (uErr) return NextResponse.json({ error: uErr }, { status: 400 });
 
-  const pwErr = validatePassword(body.password);
-  if (pwErr) return NextResponse.json({ error: pwErr }, { status: 400 });
+  const pErr = validatePassword(body.password);
+  if (pErr) return NextResponse.json({ error: pErr }, { status: 400 });
 
-  const existing = await findUserByEmail(body.email);
+  const existing = await findUserByUsername(body.username);
   if (existing) {
-    return NextResponse.json({ error: 'email_taken' }, { status: 409 });
+    return NextResponse.json({ error: 'username_taken' }, { status: 409 });
   }
 
-  const user = await createUser(body.email, body.password);
-  const token = await createSession({ userId: user.id, email: user.email });
+  const user = await createUser(body.username, body.password);
+  const token = await createSession({ userId: user.id, username: user.username });
   await setSessionCookie(token);
-  return NextResponse.json({ ok: true, user: { id: user.id, email: user.email } }, { status: 201 });
+  return NextResponse.json(
+    { ok: true, user: { id: user.id, username: user.username } },
+    { status: 201 },
+  );
 }

@@ -12,7 +12,7 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export type SessionPayload = { userId: number; email: string };
+export type SessionPayload = { userId: number; username: string };
 
 export async function createSession(payload: SessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
@@ -26,8 +26,8 @@ export async function verifySession(token: string | undefined): Promise<SessionP
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    if (typeof payload.userId === 'number' && typeof payload.email === 'string') {
-      return { userId: payload.userId, email: payload.email };
+    if (typeof payload.userId === 'number' && typeof payload.username === 'string') {
+      return { userId: payload.userId, username: payload.username };
     }
     return null;
   } catch {
@@ -39,12 +39,6 @@ export async function getCurrentSession(): Promise<SessionPayload | null> {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
   return verifySession(token);
-}
-
-export async function requireSession(): Promise<SessionPayload> {
-  const s = await getCurrentSession();
-  if (!s) throw new Error('unauthorized');
-  return s;
 }
 
 export async function setSessionCookie(token: string) {

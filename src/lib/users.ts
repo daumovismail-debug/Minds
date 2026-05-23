@@ -3,41 +3,48 @@ import { pool } from './db';
 
 export type User = {
   id: number;
-  email: string;
+  username: string;
   created_at: string;
 };
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,32}$/;
 
-export function validateEmail(email: string): string | null {
-  if (typeof email !== 'string') return 'invalid_email';
-  const e = email.trim().toLowerCase();
-  if (e.length < 3 || e.length > 254) return 'invalid_email';
-  if (!EMAIL_RE.test(e)) return 'invalid_email';
+export function normalizeUsername(raw: string): string {
+  return raw.trim().toLowerCase();
+}
+
+export function validateUsername(username: unknown): string | null {
+  if (typeof username !== 'string') return 'invalid_username';
+  const u = normalizeUsername(username);
+  if (u.length < 3) return 'username_too_short';
+  if (u.length > 32) return 'username_too_long';
+  if (!USERNAME_RE.test(u)) return 'username_invalid_chars';
   return null;
 }
 
-export function validatePassword(password: string): string | null {
+export function validatePassword(password: unknown): string | null {
   if (typeof password !== 'string') return 'invalid_password';
   if (password.length < 6) return 'password_too_short';
   if (password.length > 200) return 'password_too_long';
   return null;
 }
 
-export async function findUserByEmail(email: string): Promise<{ id: number; email: string; password_hash: string } | null> {
+export async function findUserByUsername(
+  username: string,
+): Promise<{ id: number; username: string; password_hash: string } | null> {
   const { rows } = await pool.query(
-    `SELECT id, email, password_hash FROM users WHERE email = $1 LIMIT 1`,
-    [email.trim().toLowerCase()],
+    `SELECT id, username, password_hash FROM users WHERE username = $1 LIMIT 1`,
+    [normalizeUsername(username)],
   );
   return rows[0] ?? null;
 }
 
-export async function createUser(email: string, password: string): Promise<User> {
+export async function createUser(username: string, password: string): Promise<User> {
   const hash = await bcrypt.hash(password, 10);
   const { rows } = await pool.query(
-    `INSERT INTO users (email, password_hash) VALUES ($1, $2)
-     RETURNING id, email, created_at`,
-    [email.trim().toLowerCase(), hash],
+    `INSERT INTO users (username, password_hash) VALUES ($1, $2)
+     RETURNING id, username, created_at`,
+    [normalizeUsername(username), hash],
   );
   return rows[0];
 }

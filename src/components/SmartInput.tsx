@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { isQuestion } from '@/lib/classify';
 import type { ThoughtItem } from './ThoughtCard';
 
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export function SmartInput({ onThoughtAdded }: Props) {
+  const router = useRouter();
   const [text, setText] = useState('');
   const [mode, setMode] = useState<Mode>('auto');
   const [loading, setLoading] = useState(false);
@@ -59,6 +61,12 @@ export function SmartInput({ onThoughtAdded }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: t, mode, force }),
       });
+
+      if (res.status === 401) {
+        router.push('/login');
+        router.refresh();
+        return;
+      }
 
       const data = await res.json().catch(() => ({}));
 

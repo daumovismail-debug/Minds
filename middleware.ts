@@ -9,7 +9,9 @@ async function isAuthed(req: NextRequest): Promise<boolean> {
   const secret = process.env.SESSION_SECRET;
   if (!secret) return false;
   try {
-    await jwtVerify(token, new TextEncoder().encode(secret));
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
+    if (typeof payload.userId !== 'number') return false;
+    if (typeof payload.email !== 'string') return false;
     return true;
   } catch {
     return false;
@@ -21,7 +23,10 @@ export async function middleware(req: NextRequest) {
 
   const isLoginPage = pathname === '/login';
   const isRegisterPage = pathname === '/register';
-  const isAuthApi = pathname === '/api/auth/login' || pathname === '/api/auth/register';
+  const isAuthApi =
+    pathname === '/api/auth/login' ||
+    pathname === '/api/auth/register' ||
+    pathname === '/api/auth/logout';
   const isPublicAsset = pathname.startsWith('/_next') || pathname.startsWith('/favicon');
 
   if (isLoginPage || isRegisterPage || isAuthApi || isPublicAsset) {
@@ -31,12 +36,16 @@ export async function middleware(req: NextRequest) {
   const authed = await isAuthed(req);
   if (!authed) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+      const res = NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+      res.cookies.delete(COOKIE_NAME);
+      return res;
     }
     const url = req.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
+    const res = NextResponse.redirect(url);
+    res.cookies.delete(COOKIE_NAME);
+    return res;
   }
 
   return NextResponse.next();

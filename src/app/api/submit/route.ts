@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
 import { pool, toVectorLiteral } from '@/lib/db';
-import { answerFromThoughts, embed, embedQuery } from '@/lib/gemini';
+import { embed, embedQuery } from '@/lib/embeddings';
+import { answerFromThoughts } from '@/lib/llm';
 import { getCurrentSession } from '@/lib/auth';
 import { resolveIntent, type IntentMode } from '@/lib/classify';
 
 export const dynamic = 'force-dynamic';
 
-function geminiErrorMessage(e: unknown): string {
+function llmErrorMessage(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
-  if (/API key/i.test(msg) || /API_KEY/i.test(msg))
-    return 'Gemini API ключ не работает. Проверь GEMINI_API_KEY в .env';
-  if (/quota/i.test(msg) || /rate/i.test(msg))
-    return 'Превышен лимит Gemini API. Подожди минуту и попробуй ещё раз';
-  if (/network|fetch|ECONNREFUSED|ETIMEDOUT/i.test(msg))
-    return 'Сеть не отвечает. Проверь подключение сервера к интернету';
-  return `Ошибка Gemini: ${msg}`;
+  if (/COHERE_API_KEY/i.test(msg)) return 'Cohere API ключ не настроен (COHERE_API_KEY в .env)';
+  if (/GROQ_API_KEY/i.test(msg)) return 'Groq API ключ не настроен (GROQ_API_KEY в .env)';
+  if (/Cohere 401|Cohere 403/i.test(msg)) return 'Cohere API ключ неверный или истёк';
+  if (/Groq 401|Groq 403/i.test(msg)) return 'Groq API ключ неверный или истёк';
+  if (/Cohere 429|Groq 429/i.test(msg)) return 'Превышен лимит — подожди минуту';
+  if (/network|fetch|ECONNREFUSED|ETIMEDOUT|ENOTFOUND/i.test(msg))
+    return 'Сеть не отвечает. Сервер не может достучаться до Groq/Cohere';
+  return `Ошибка ИИ: ${msg}`;
 }
 
 export async function POST(req: Request) {
@@ -45,7 +47,7 @@ export async function POST(req: Request) {
           LIMIT 5`,
         [vec, userId],
       );
-      const relevant = thoughts.filter((t) => Number(t.similarity) >= 0.45);
+      const relevant = thoughts.filter((t) => Number(t.similarity) >= 0.35);
       const answer = await answerFromThoughts({
         question: text,
         thoughts: relevant.map((t) => ({
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
       });
     } catch (e) {
       console.error('submit question error:', e);
-      return NextResponse.json({ intent: 'question', error: geminiErrorMessage(e) }, { status: 502 });
+      return NextResponse.json({ intent: 'question', error: llmErrorMessage(e) }, { status: 502 });
     }
   }
 
@@ -84,7 +86,7 @@ export async function POST(req: Request) {
     embedding = await embed(text);
   } catch (e) {
     console.error('submit thought embed error:', e);
-    return NextResponse.json({ intent: 'thought', error: geminiErrorMessage(e) }, { status: 502 });
+    return NextResponse.json({ intent: 'thought', error: llmErrorMessage(e) }, { status: 502 });
   }
   const vec = toVectorLiteral(embedding);
 

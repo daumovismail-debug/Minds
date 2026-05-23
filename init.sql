@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS thoughts (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   tags TEXT[] NOT NULL DEFAULT '{}',
-  embedding vector(768),
+  embedding vector(1024),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

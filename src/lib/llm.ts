@@ -1,0 +1,64 @@
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+export const CHAT_MODEL = 'llama-3.3-70b-versatile';
+
+const SYSTEM_PROMPT = `Ты — личный ассистент пользователя, который опирается ИСКЛЮЧИТЕЛЬНО на его собственные записанные мысли и принципы.
+
+Правила:
+- Отвечай на том же языке, на котором задан вопрос.
+- Используй только предоставленные ниже записи пользователя. Не выдумывай факты.
+- Цитируй записи в формате [#id от ДАТА] кратко, где это уместно.
+- Если в записях нет ничего релевантного — честно скажи об этом и предложи записать новую мысль на эту тему.
+- Отвечай кратко, по-человечески, как близкий друг, помнящий все принципы пользователя.`;
+
+export type AnswerInput = {
+  question: string;
+  thoughts: Array<{ id: number; content: string; created_at: string; similarity: number }>;
+};
+
+type GroqResponse = {
+  choices?: Array<{ message?: { content?: string } }>;
+  error?: { message?: string };
+};
+
+export async function answerFromThoughts({ question, thoughts }: AnswerInput): Promise<string> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error('GROQ_API_KEY is not configured');
+
+  const context =
+    thoughts.length === 0
+      ? '(нет релевантных записей)'
+      : thoughts
+          .map(
+            (t) =>
+              `#${t.id} от ${new Date(t.created_at).toLocaleDateString('ru-RU')} (релевантность ${(t.similarity * 100).toFixed(0)}%):\n${t.content}`,
+          )
+          .join('\n\n---\n\n');
+
+  const userPrompt = `Записи пользователя:\n\n${context}\n\n---\n\nВопрос пользователя: ${question}`;
+
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      temperature: 0.4,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Groq ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  const data = (await res.json()) as GroqResponse;
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error('Groq вернул пустой ответ');
+  return text;
+}

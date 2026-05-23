@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pool, toVectorLiteral, type Thought } from '@/lib/db';
-import { embed } from '@/lib/gemini';
+import { embed } from '@/lib/embeddings';
 import { getCurrentSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';

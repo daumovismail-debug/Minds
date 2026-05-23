@@ -6,13 +6,33 @@
   html, body {
     @apply h-full;
   }
+  html {
+    /* iOS Safari: prevent text auto-scaling */
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    @apply bg-ink-950 text-ink-50 font-sans antialiased;
+    @apply text-ink-50 font-sans antialiased;
     background: #06060a;
     min-height: 100vh;
+    min-height: 100svh;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
   }
   ::selection {
     @apply bg-accent/40 text-white;
+  }
+  /* iOS Safari: prevent zoom-on-focus by ensuring inputs are >= 16px */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  @media (min-width: 640px) {
+    input, textarea, select {
+      font-size: 14px;
+    }
+  }
+  button {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 }
 
@@ -26,22 +46,20 @@
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-accent text-ink-950 hover:bg-accent-soft;
+    @apply btn bg-gradient-to-br from-accent to-accent-deep text-ink-950
+           hover:shadow-lg hover:shadow-accent/20 hover:scale-[1.02];
   }
   .btn-ghost {
     @apply btn text-ink-200 hover:bg-white/5;
   }
-  .btn-danger {
-    @apply btn text-red-300 hover:bg-red-500/10;
-  }
   .input {
-    @apply w-full bg-ink-900/40 border border-white/10 rounded-lg
-           px-3 py-2 text-ink-50 placeholder:text-ink-400
-           focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/20
+    @apply w-full bg-ink-900/40 border border-white/10 rounded-xl
+           px-4 py-2.5 text-ink-50 placeholder:text-ink-500
+           focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/15
            transition-all duration-150;
   }
   .card {
-    @apply glass rounded-xl p-4 shadow-lg shadow-black/20;
+    @apply glass rounded-2xl p-4 shadow-lg shadow-black/20;
   }
 }
 
@@ -90,13 +108,13 @@
 .shooting-star-1 {
   top: 12%;
   left: -10%;
-  animation: shoot 12s linear infinite;
+  animation: shoot 14s linear infinite;
   animation-delay: 3s;
 }
 .shooting-star-2 {
   top: 55%;
   left: -10%;
-  animation: shoot 18s linear infinite;
+  animation: shoot 20s linear infinite;
   animation-delay: 9s;
 }
 @keyframes shoot {

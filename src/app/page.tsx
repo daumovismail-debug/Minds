@@ -7,7 +7,14 @@ export default async function HomePage() {
   return (
     <>
       <Header username={session?.username} />
-      <main className="max-w-3xl mx-auto px-4 py-6">
+      <main
+        className="px-4"
+        style={{
+          paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+          paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right))',
+        }}
+      >
         <ThoughtsFeed />
       </main>
     </>

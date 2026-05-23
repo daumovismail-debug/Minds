@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isQuestion } from '@/lib/classify';
+import { classify, type Intent } from '@/lib/classify';
+import { ArrowUpIcon, CheckIcon, SparkleIcon } from './icons';
 import type { ThoughtItem } from './ThoughtCard';
-
-type Mode = 'auto' | 'thought' | 'question';
 
 type Source = {
   id: number;
@@ -26,25 +25,43 @@ type AnswerState = {
 };
 
 type Props = {
-  onThoughtAdded: (t: ThoughtItem) => void;
+  onItemAdded: (t: ThoughtItem) => void;
 };
 
-export function SmartInput({ onThoughtAdded }: Props) {
+const INTENT_LABEL: Record<Intent, { label: string; color: string }> = {
+  thought: { label: 'мысль', color: 'text-accent-soft' },
+  question: { label: 'вопрос', color: 'text-sky-300' },
+  task: { label: 'задача', color: 'text-amber-300' },
+};
+
+const ACTION_LABEL: Record<Intent, string> = {
+  thought: 'сохраню как мысль',
+  question: 'найду ответ в твоих записях',
+  task: 'добавлю в задачи',
+};
+
+export function SmartInput({ onItemAdded }: Props) {
   const router = useRouter();
   const [text, setText] = useState('');
-  const [mode, setMode] = useState<Mode>('auto');
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<AnswerState | null>(null);
   const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const detected: 'thought' | 'question' =
-    mode !== 'auto' ? mode : isQuestion(text) ? 'question' : 'thought';
+  const intent: Intent = text.trim() ? classify(text) : 'thought';
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 280) + 'px';
+  }, [text]);
 
   useEffect(() => {
     if (!saved) return;
-    const t = setTimeout(() => setSaved(false), 2000);
+    const t = setTimeout(() => setSaved(false), 1800);
     return () => clearTimeout(t);
   }, [saved]);
 
@@ -59,7 +76,7 @@ export function SmartInput({ onThoughtAdded }: Props) {
       const res = await fetch('/api/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: t, mode, force }),
+        body: JSON.stringify({ text: t, force }),
       });
 
       if (res.status === 401) {
@@ -80,13 +97,12 @@ export function SmartInput({ onThoughtAdded }: Props) {
         return;
       }
 
-      if (data.intent === 'thought') {
-        onThoughtAdded(data.thought);
-        setText('');
-        setMode('auto');
-        setSaved(true);
-      } else if (data.intent === 'question') {
+      if (data.intent === 'question') {
         setAnswer({ question: t, answer: data.answer, sources: data.sources ?? [] });
+      } else {
+        onItemAdded(data.thought);
+        setText('');
+        setSaved(true);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Сетевая ошибка');
@@ -95,95 +111,78 @@ export function SmartInput({ onThoughtAdded }: Props) {
     }
   }
 
+  const showHint = text.trim().length > 0;
+  const intentMeta = INTENT_LABEL[intent];
+
   return (
-    <div className="card border-white/10">
-      {/* Centered mode toggle */}
-      <div className="flex items-center justify-center gap-1 text-xs mb-3">
-        <button
-          onClick={() => setMode('auto')}
-          className={`px-2.5 py-1 rounded-md transition-colors ${
-            mode === 'auto' ? 'bg-white/10 text-white' : 'text-ink-400 hover:text-ink-200'
-          }`}
-        >
-          авто
-        </button>
-        <button
-          onClick={() => setMode('thought')}
-          className={`px-2.5 py-1 rounded-md transition-colors ${
-            mode === 'thought' ? 'bg-accent/25 text-accent-soft' : 'text-ink-400 hover:text-ink-200'
-          }`}
-        >
-          💭 мысль
-        </button>
-        <button
-          onClick={() => setMode('question')}
-          className={`px-2.5 py-1 rounded-md transition-colors ${
-            mode === 'question' ? 'bg-accent/25 text-accent-soft' : 'text-ink-400 hover:text-ink-200'
-          }`}
-        >
-          ❓ вопрос
-        </button>
-      </div>
+    <div className="w-full">
+      <div className="relative rounded-3xl bg-ink-900/60 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/30 transition-all focus-within:border-accent/40 focus-within:shadow-accent/10">
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Запиши мысль, задачу или задай вопрос…"
+          rows={1}
+          className="w-full bg-transparent border-0 outline-none resize-none px-5 pt-4 pb-2 text-[16px] leading-relaxed text-ink-50 placeholder:text-ink-500"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Запиши мысль или задай вопрос…"
-        className="input min-h-[110px] resize-y text-base"
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            submit();
-          }
-        }}
-      />
+        <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-1">
+          <div className="text-xs text-ink-500 flex items-center gap-1.5 min-w-0 flex-1">
+            {showHint ? (
+              <span className="truncate animate-fade-in flex items-center gap-1.5">
+                <SparkleIcon size={11} className={intentMeta.color} />
+                <span className={intentMeta.color}>{intentMeta.label}</span>
+                <span className="text-ink-500">— {ACTION_LABEL[intent]}</span>
+              </span>
+            ) : (
+              <span className="hidden sm:inline">Enter — отправить · Shift+Enter — новая строка</span>
+            )}
+          </div>
 
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <div className="text-xs text-ink-500">
-          {text.trim().length > 0 ? (
-            <span className="text-ink-300">
-              {detected === 'question' ? '→ ищу ответ в твоих мыслях' : '→ сохраню как мысль'}
-            </span>
-          ) : (
-            <span>Enter — отправить · Shift+Enter — новая строка</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {saved && (
-            <span className="text-xs text-emerald-300 animate-fade-in">✓ сохранено</span>
-          )}
-          <button
-            className="btn-primary"
-            onClick={() => submit(false)}
-            disabled={loading || !text.trim()}
-          >
-            {loading
-              ? detected === 'question'
-                ? 'Думаю…'
-                : 'Сохраняю…'
-              : detected === 'question'
-                ? 'Спросить'
-                : 'Сохранить'}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {saved && (
+              <span className="text-xs text-emerald-300 flex items-center gap-1 animate-fade-in">
+                <CheckIcon size={12} /> сохранено
+              </span>
+            )}
+            <button
+              onClick={() => submit(false)}
+              disabled={loading || !text.trim()}
+              className="h-9 w-9 rounded-full bg-gradient-to-br from-accent to-accent-deep text-ink-950 flex items-center justify-center transition-all duration-150 hover:scale-105 hover:shadow-lg hover:shadow-accent/30 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed"
+              aria-label="Отправить"
+            >
+              {loading ? (
+                <span className="h-3 w-3 rounded-full border-2 border-ink-950/40 border-t-ink-950 animate-spin" />
+              ) : (
+                <ArrowUpIcon size={16} />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="mt-3 rounded-lg border border-red-400/30 bg-red-500/5 p-3 text-sm text-red-200 animate-slide-up">
-          {error}
+        <div className="mt-3 rounded-xl border border-red-400/30 bg-red-500/10 backdrop-blur p-3 text-sm text-red-200 animate-slide-up flex items-start justify-between gap-2">
+          <span>{error}</span>
           <button
             onClick={() => setError(null)}
-            className="ml-2 text-red-300 hover:text-red-100 text-xs"
+            className="text-red-300/70 hover:text-red-100 text-xs shrink-0"
           >
-            закрыть
+            ✕
           </button>
         </div>
       )}
 
       {duplicate && (
-        <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3 animate-slide-up">
+        <div className="mt-3 rounded-2xl border border-amber-400/30 bg-amber-400/5 backdrop-blur p-4 animate-slide-up">
           <div className="text-amber-200 text-sm font-medium">Похоже, эта мысль уже записана</div>
-          <div className="mt-2 space-y-2">
+          <div className="mt-2.5 space-y-2">
             {duplicate.similar.map((s) => (
               <div key={s.id} className="text-sm text-ink-100">
                 <span className="text-ink-400 text-xs mr-2">
@@ -195,10 +194,17 @@ export function SmartInput({ onThoughtAdded }: Props) {
             ))}
           </div>
           <div className="mt-3 flex gap-2 justify-end">
-            <button className="btn-ghost text-xs" onClick={() => setDuplicate(null)}>
+            <button
+              className="text-xs px-3 py-1.5 rounded-lg text-ink-200 hover:bg-white/5"
+              onClick={() => setDuplicate(null)}
+            >
               Отмена
             </button>
-            <button className="btn-primary text-xs" onClick={() => submit(true)} disabled={loading}>
+            <button
+              className="text-xs px-3 py-1.5 rounded-lg bg-accent text-ink-950 hover:bg-accent-soft"
+              onClick={() => submit(true)}
+              disabled={loading}
+            >
               Всё равно сохранить
             </button>
           </div>
@@ -207,16 +213,19 @@ export function SmartInput({ onThoughtAdded }: Props) {
 
       {answer && (
         <div className="mt-4 animate-slide-up">
-          <div className="text-xs text-ink-400 mb-1">Вопрос: {answer.question}</div>
-          <div className="rounded-lg bg-ink-800/60 border border-white/5 p-4 whitespace-pre-wrap leading-relaxed">
+          <div className="text-xs text-ink-400 mb-1.5 flex items-center gap-1.5">
+            <SparkleIcon size={11} className="text-sky-300" />
+            <span>{answer.question}</span>
+          </div>
+          <div className="rounded-2xl bg-ink-800/70 backdrop-blur border border-white/10 p-4 whitespace-pre-wrap leading-relaxed text-ink-50 shadow-lg shadow-black/20">
             {answer.answer}
           </div>
           {answer.sources.length > 0 && (
-            <div className="mt-3">
-              <div className="text-xs text-ink-400 mb-1">Источники из твоих записей:</div>
+            <div className="mt-2.5">
+              <div className="text-xs text-ink-500 mb-1">Из твоих записей:</div>
               <div className="space-y-1">
                 {answer.sources.map((s) => (
-                  <div key={s.id} className="text-xs text-ink-300">
+                  <div key={s.id} className="text-xs text-ink-400">
                     <span className="text-ink-500">
                       #{s.id} · {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
                       {(s.similarity * 100).toFixed(0)}%
@@ -229,7 +238,10 @@ export function SmartInput({ onThoughtAdded }: Props) {
             </div>
           )}
           <div className="mt-2 flex justify-end">
-            <button className="btn-ghost text-xs" onClick={() => setAnswer(null)}>
+            <button
+              className="text-xs px-3 py-1.5 rounded-lg text-ink-300 hover:bg-white/5"
+              onClick={() => setAnswer(null)}
+            >
               Закрыть
             </button>
           </div>

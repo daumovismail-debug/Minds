@@ -1,20 +1,56 @@
-const RU_QUESTION_START = /^(что|чё|как|почему|зачем|когда|где|куда|откуда|кто|каки[ехой]|какая|какое|сколько|можно|можешь|нужно|надо|стоит|должен|должна|могу|может|правда|правильно|есть ли|нужно ли|стоит ли|надо ли)\b/;
-const EN_QUESTION_START = /^(what|how|why|when|where|who|which|should|can|could|would|is|are|do|does|did|will|am)\b/;
+const QUESTION_END = /\?\s*$/;
+
+const RU_QUESTION_START =
+  /^(что|чё|как|почему|зачем|когда|где|куда|откуда|кто|каки[ехой]|какая|какое|сколько|можно ли|можешь ли|нужно ли|надо ли|стоит ли|правда ли|есть ли|должен ли|должна ли|будет ли|есть)\b/;
+
+const EN_QUESTION_START =
+  /^(what|how|why|when|where|who|which|should|can|could|would|is|are|do|does|did|will|am)\b/;
+
 const RU_LI_PATTERN = /\bли\b/;
+
+const RU_TASK_VERBS_INF =
+  /^(купить|сделать|позвонить|написать|отправить|помыть|постирать|забрать|отнести|починить|заплатить|оплатить|заказать|забронировать|проверить|узнать|спросить|сходить|заехать|встретить|поздравить|поблагодарить|записать|прочитать|посмотреть|подписать|отослать|выкинуть|выбросить|собрать|принять|выпить|съесть|приготовить|убрать|вытереть|поговорить|обсудить|решить|выучить|тренироваться|пойти|поехать|вернуть|пригласить|отремонтировать|постричься|погладить|сходить|спросить|зайти|зайди|открыть|закрыть|включить|выключить|перенести|перевести|выбрать|найти|настроить|обновить|зарегистрировать|подать|сдать|пройти|написать|прислать)/i;
+
+const RU_TASK_IMP =
+  /^(купи|сделай|позвони|напиши|отправь|помой|постирай|забери|отнеси|почини|заплати|оплати|закажи|проверь|узнай|спроси|сходи|поезжай|заедь|встреть|поздравь|поблагодари|запиши|прочитай|посмотри|выкини|выброси|собери|приготовь|убери|погладь|реши|выучи|потренируйся|вернись|открой|закрой|включи|выключи|перенеси|выбери|найди|настрой|обнови)/i;
+
+const RU_TASK_MARKERS =
+  /^(не забыть|надо\s+\S+ть\b|нужно\s+\S+ть\b|должен\s+\S+ть\b|должна\s+\S+ть\b|должны\s+\S+ть\b)/;
+
+const RU_DATE_PREFIX =
+  /^(сегодня|завтра|послезавтра|вечером|утром|днём|днем|ночью|на этой неделе|на следующей неделе|в (?:понедельник|вторник|среду|среды|четверг|пятницу|субботу|воскресенье)|через\s+\d+)\b/;
+
+const RU_REFLECTIVE_THOUGHT =
+  /^(я\s+(понял|поняла|думаю|считаю|чувствую|хочу|вижу|заметил|заметила|осознал|осознала|верю)|мне\s+(кажется|нравится)|стоит\b|правильно\b|важно\b|лучше\b|нельзя\b|можно\b)/;
+
+export type Intent = 'thought' | 'question' | 'task';
 
 export function isQuestion(text: string): boolean {
   const t = text.trim().toLowerCase();
   if (!t) return false;
-  if (t.endsWith('?')) return true;
+  if (QUESTION_END.test(t)) return true;
   if (RU_QUESTION_START.test(t)) return true;
   if (EN_QUESTION_START.test(t)) return true;
   if (RU_LI_PATTERN.test(t.slice(0, 40))) return true;
   return false;
 }
 
-export type IntentMode = 'auto' | 'thought' | 'question';
+export function isTask(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (!t) return false;
+  if (RU_REFLECTIVE_THOUGHT.test(t)) return false;
+  if (RU_TASK_MARKERS.test(t)) return true;
+  if (RU_TASK_IMP.test(t)) return true;
+  if (RU_TASK_VERBS_INF.test(t)) return true;
+  if (RU_DATE_PREFIX.test(t)) {
+    const rest = t.replace(RU_DATE_PREFIX, '').trim();
+    if (RU_TASK_VERBS_INF.test(rest) || RU_TASK_IMP.test(rest)) return true;
+  }
+  return false;
+}
 
-export function resolveIntent(text: string, mode: IntentMode): 'thought' | 'question' {
-  if (mode === 'thought' || mode === 'question') return mode;
-  return isQuestion(text) ? 'question' : 'thought';
+export function classify(text: string): Intent {
+  if (isQuestion(text)) return 'question';
+  if (isTask(text)) return 'task';
+  return 'thought';
 }

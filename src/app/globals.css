@@ -8,10 +8,8 @@
   }
   body {
     @apply bg-ink-950 text-ink-50 font-sans antialiased;
-    background-image:
-      radial-gradient(1200px 600px at 80% -10%, rgba(167,139,250,0.10), transparent 60%),
-      radial-gradient(900px 500px at -10% 110%, rgba(124,58,237,0.10), transparent 60%);
-    background-attachment: fixed;
+    background: #06060a;
+    min-height: 100vh;
   }
   ::selection {
     @apply bg-accent/40 text-white;
@@ -20,7 +18,7 @@
 
 @layer components {
   .glass {
-    @apply bg-ink-900/60 backdrop-blur-md border border-white/5;
+    @apply bg-ink-900/50 backdrop-blur-md border border-white/10;
   }
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
@@ -37,7 +35,7 @@
     @apply btn text-red-300 hover:bg-red-500/10;
   }
   .input {
-    @apply w-full bg-ink-900/60 border border-white/10 rounded-lg
+    @apply w-full bg-ink-900/40 border border-white/10 rounded-lg
            px-3 py-2 text-ink-50 placeholder:text-ink-400
            focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/20
            transition-all duration-150;
@@ -45,6 +43,67 @@
   .card {
     @apply glass rounded-xl p-4 shadow-lg shadow-black/20;
   }
+}
+
+/* === Stars background === */
+.star {
+  position: absolute;
+  background: white;
+  border-radius: 50%;
+  opacity: 0;
+  animation: twinkle ease-in-out infinite;
+  box-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
+}
+.star-bright {
+  background: #e9ddff;
+  box-shadow:
+    0 0 4px rgba(255, 255, 255, 0.9),
+    0 0 10px rgba(167, 139, 250, 0.6),
+    0 0 16px rgba(167, 139, 250, 0.3);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.15); }
+}
+
+/* Shooting stars */
+.shooting-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: linear-gradient(45deg, white, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  box-shadow: 0 0 6px white;
+}
+.shooting-star::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 80px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6));
+  transform: translateY(-50%);
+}
+.shooting-star-1 {
+  top: 12%;
+  left: -10%;
+  animation: shoot 12s linear infinite;
+  animation-delay: 3s;
+}
+.shooting-star-2 {
+  top: 55%;
+  left: -10%;
+  animation: shoot 18s linear infinite;
+  animation-delay: 9s;
+}
+@keyframes shoot {
+  0%   { transform: translate(0, 0) rotate(15deg); opacity: 0; }
+  3%   { opacity: 1; }
+  20%  { transform: translate(120vw, 30vh) rotate(15deg); opacity: 0; }
+  100% { transform: translate(120vw, 30vh) rotate(15deg); opacity: 0; }
 }
 
 /* Scrollbar */
@@ -55,3 +114,12 @@
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* Animations */
+.animate-fade-in { animation: fadeIn 0.3s ease-out; }
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

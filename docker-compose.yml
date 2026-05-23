@@ -26,8 +26,6 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-minds}:${POSTGRES_PASSWORD:-minds_password}@db:5432/${POSTGRES_DB:-minds}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       SESSION_SECRET: ${SESSION_SECRET}
       DUPLICATE_THRESHOLD: ${DUPLICATE_THRESHOLD:-0.85}
       NODE_ENV: production

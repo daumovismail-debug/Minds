@@ -1,20 +1,23 @@
 import { NextResponse } from 'next/server';
 import { pool, toVectorLiteral } from '@/lib/db';
 import { embed } from '@/lib/gemini';
+import { requireSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { userId } = await requireSession();
   const { id: rawId } = await params;
   const id = Number(rawId);
   if (!Number.isFinite(id)) {
     return NextResponse.json({ error: 'invalid_id' }, { status: 400 });
   }
-  await pool.query(`DELETE FROM thoughts WHERE id = $1`, [id]);
+  await pool.query(`DELETE FROM thoughts WHERE id = $1 AND user_id = $2`, [id, userId]);
   return NextResponse.json({ ok: true });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { userId } = await requireSession();
   const { id: rawId } = await params;
   const id = Number(rawId);
   if (!Number.isFinite(id)) {
@@ -40,9 +43,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             tags = $2,
             embedding = $3::vector,
             updated_at = NOW()
-      WHERE id = $4
+      WHERE id = $4 AND user_id = $5
       RETURNING id, content, tags, created_at, updated_at`,
-    [content, tags, vec, id],
+    [content, tags, vec, id, userId],
   );
 
   if (rows.length === 0) {

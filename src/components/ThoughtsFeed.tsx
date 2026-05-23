@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AddThought } from './AddThought';
-import { AskBox } from './AskBox';
+import { SmartInput } from './SmartInput';
 import { ThoughtCard, type ThoughtItem } from './ThoughtCard';
 
 export function ThoughtsFeed() {
@@ -51,17 +50,13 @@ export function ThoughtsFeed() {
 
   return (
     <div className="space-y-6">
-      <AskBox />
-
-      <AddThought
-        onAdded={(t) => setThoughts((prev) => [t, ...prev])}
-      />
+      <SmartInput onThoughtAdded={(t) => setThoughts((prev) => [t, ...prev])} />
 
       <div>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="🔍 Семантический поиск по мыслям…"
+          placeholder="🔍 поиск по смыслу…"
           className="input"
         />
       </div>
@@ -72,7 +67,7 @@ export function ThoughtsFeed() {
         )}
         {!loading && thoughts.length === 0 && (
           <div className="text-center text-ink-400 py-12 text-sm">
-            {search ? 'Ничего не найдено' : 'Пока пусто — запиши свою первую мысль выше'}
+            {search ? 'Ничего не найдено' : 'Пока пусто — запиши свою первую мысль'}
           </div>
         )}
         {searching && <div className="text-xs text-ink-400">Поиск…</div>}

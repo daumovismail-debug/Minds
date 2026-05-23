@@ -12,20 +12,22 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function createSession(login: string): Promise<string> {
-  return new SignJWT({ login })
+export type SessionPayload = { userId: number; email: string };
+
+export async function createSession(payload: SessionPayload): Promise<string> {
+  return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(SESSION_TTL)
     .sign(getSecret());
 }
 
-export async function verifySession(token: string | undefined): Promise<{ login: string } | null> {
+export async function verifySession(token: string | undefined): Promise<SessionPayload | null> {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    if (typeof payload.login === 'string') {
-      return { login: payload.login };
+    if (typeof payload.userId === 'number' && typeof payload.email === 'string') {
+      return { userId: payload.userId, email: payload.email };
     }
     return null;
   } catch {
@@ -33,10 +35,16 @@ export async function verifySession(token: string | undefined): Promise<{ login:
   }
 }
 
-export async function getCurrentSession() {
+export async function getCurrentSession(): Promise<SessionPayload | null> {
   const store = await cookies();
   const token = store.get(COOKIE_NAME)?.value;
   return verifySession(token);
+}
+
+export async function requireSession(): Promise<SessionPayload> {
+  const s = await getCurrentSession();
+  if (!s) throw new Error('unauthorized');
+  return s;
 }
 
 export async function setSessionCookie(token: string) {

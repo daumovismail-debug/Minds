@@ -20,10 +20,11 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const isLoginPage = pathname === '/login';
-  const isLoginApi = pathname === '/api/auth/login';
+  const isRegisterPage = pathname === '/register';
+  const isAuthApi = pathname === '/api/auth/login' || pathname === '/api/auth/register';
   const isPublicAsset = pathname.startsWith('/_next') || pathname.startsWith('/favicon');
 
-  if (isLoginPage || isLoginApi || isPublicAsset) {
+  if (isLoginPage || isRegisterPage || isAuthApi || isPublicAsset) {
     return NextResponse.next();
   }
 

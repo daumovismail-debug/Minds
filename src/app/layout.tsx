@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { StarsBackground } from '@/components/StarsBackground';
 
 export const metadata: Metadata = {
   title: 'Minds — твой второй мозг',
@@ -18,7 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <StarsBackground />
+        {children}
+      </body>
     </html>
   );
 }

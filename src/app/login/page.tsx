@@ -1,10 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function LoginForm() {
-  const [login, setLogin] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,11 +20,11 @@ function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ login, password }),
+        body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error === 'invalid_credentials' ? 'Неверный логин или пароль' : 'Ошибка входа');
+        setError(data.error === 'invalid_credentials' ? 'Неверный email или пароль' : 'Ошибка входа');
         return;
       }
       const next = params.get('next') ?? '/';
@@ -43,13 +44,15 @@ function LoginForm() {
         <p className="mt-1 text-sm text-ink-300">Твой второй мозг</p>
       </div>
 
-      <label className="block text-sm text-ink-200 mb-1">Логин</label>
+      <label className="block text-sm text-ink-200 mb-1">Email</label>
       <input
+        type="email"
         className="input mb-3"
-        value={login}
-        onChange={(e) => setLogin(e.target.value)}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
         autoFocus
         autoComplete="username"
+        required
       />
 
       <label className="block text-sm text-ink-200 mb-1">Пароль</label>
@@ -59,6 +62,7 @@ function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         autoComplete="current-password"
+        required
       />
 
       {error && <div className="mb-3 text-sm text-red-300">{error}</div>}
@@ -66,6 +70,13 @@ function LoginForm() {
       <button type="submit" className="btn-primary w-full" disabled={loading}>
         {loading ? 'Вход…' : 'Войти'}
       </button>
+
+      <div className="mt-4 text-center text-sm text-ink-400">
+        Нет аккаунта?{' '}
+        <Link href="/register" className="text-accent-soft hover:text-accent">
+          Зарегистрироваться
+        </Link>
+      </div>
     </form>
   );
 }

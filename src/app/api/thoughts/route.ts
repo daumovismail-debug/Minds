@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { pool, toVectorLiteral, type Thought } from '@/lib/db';
 import { embed } from '@/lib/gemini';
+import { requireSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const { userId } = await requireSession();
   const url = new URL(req.url);
   const q = url.searchParams.get('q')?.trim();
 
@@ -15,10 +17,10 @@ export async function GET(req: Request) {
       `SELECT id, content, tags, created_at, updated_at,
               1 - (embedding <=> $1::vector) AS similarity
          FROM thoughts
-        WHERE embedding IS NOT NULL
+        WHERE user_id = $2 AND embedding IS NOT NULL
         ORDER BY embedding <=> $1::vector
         LIMIT 50`,
-      [vec],
+      [vec, userId],
     );
     return NextResponse.json({ thoughts: rows });
   }
@@ -26,13 +28,16 @@ export async function GET(req: Request) {
   const { rows } = await pool.query<Thought>(
     `SELECT id, content, tags, created_at, updated_at
        FROM thoughts
+      WHERE user_id = $1
       ORDER BY created_at DESC
       LIMIT 200`,
+    [userId],
   );
   return NextResponse.json({ thoughts: rows });
 }
 
 export async function POST(req: Request) {
+  const { userId } = await requireSession();
   const body = await req.json().catch(() => null);
   if (!body || typeof body.content !== 'string' || !body.content.trim()) {
     return NextResponse.json({ error: 'content_required' }, { status: 400 });
@@ -54,10 +59,10 @@ export async function POST(req: Request) {
       `SELECT id, content, tags, created_at, updated_at,
               1 - (embedding <=> $1::vector) AS similarity
          FROM thoughts
-        WHERE embedding IS NOT NULL
+        WHERE user_id = $2 AND embedding IS NOT NULL
         ORDER BY embedding <=> $1::vector
         LIMIT 3`,
-      [vec],
+      [vec, userId],
     );
     const top = similar[0];
     if (top && Number(top.similarity) >= threshold) {
@@ -73,10 +78,10 @@ export async function POST(req: Request) {
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO thoughts (content, tags, embedding)
-     VALUES ($1, $2, $3::vector)
+    `INSERT INTO thoughts (user_id, content, tags, embedding)
+     VALUES ($1, $2, $3, $4::vector)
      RETURNING id, content, tags, created_at, updated_at`,
-    [content, tags, vec],
+    [userId, content, tags, vec],
   );
 
   return NextResponse.json({ thought: rows[0] }, { status: 201 });

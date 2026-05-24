@@ -50,15 +50,18 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
-      <form onSubmit={onSubmit} className="card w-full max-w-sm animate-slide-up">
+      <form
+        onSubmit={onSubmit}
+        className="w-full max-w-sm animate-slide-up bg-white rounded-2xl border border-paper-300 shadow-sm shadow-paper-400/20 p-6"
+      >
         <div className="mb-6 text-center">
-          <div className="inline-block text-3xl font-semibold bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
-            Minds
+          <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-accent to-accent-deep items-center justify-center text-white text-2xl font-bold shadow-md shadow-accent/30 mb-3">
+            M
           </div>
-          <p className="mt-1 text-sm text-ink-300">Создай аккаунт</p>
+          <h1 className="text-2xl font-semibold text-paper-800">Создай аккаунт</h1>
         </div>
 
-        <label className="block text-sm text-ink-200 mb-1">Логин</label>
+        <label className="block text-sm text-paper-700 mb-1">Логин</label>
         <input
           type="text"
           className="input mb-1"
@@ -71,9 +74,9 @@ export default function RegisterPage() {
           maxLength={32}
           required
         />
-        <div className="text-xs text-ink-500 mb-3">3–32 символа, латиница, цифры, _</div>
+        <div className="text-xs text-paper-500 mb-3">3–32 символа, латиница, цифры, _</div>
 
-        <label className="block text-sm text-ink-200 mb-1">Пароль</label>
+        <label className="block text-sm text-paper-700 mb-1">Пароль</label>
         <input
           type="password"
           className="input mb-3"
@@ -84,7 +87,7 @@ export default function RegisterPage() {
           required
         />
 
-        <label className="block text-sm text-ink-200 mb-1">Повтори пароль</label>
+        <label className="block text-sm text-paper-700 mb-1">Повтори пароль</label>
         <input
           type="password"
           className="input mb-4"
@@ -95,15 +98,15 @@ export default function RegisterPage() {
           required
         />
 
-        {error && <div className="mb-3 text-sm text-red-300">{error}</div>}
+        {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
 
         <button type="submit" className="btn-primary w-full" disabled={loading}>
           {loading ? 'Создаём…' : 'Зарегистрироваться'}
         </button>
 
-        <div className="mt-4 text-center text-sm text-ink-400">
+        <div className="mt-4 text-center text-sm text-paper-500">
           Уже есть аккаунт?{' '}
-          <Link href="/login" className="text-accent-soft hover:text-accent">
+          <Link href="/login" className="text-accent-deep hover:text-accent font-medium">
             Войти
           </Link>
         </div>

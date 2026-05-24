@@ -7,24 +7,25 @@
     @apply h-full;
   }
   html {
-    /* iOS Safari: prevent text auto-scaling */
     -webkit-text-size-adjust: 100%;
   }
   body {
-    @apply text-ink-50 font-sans antialiased;
-    background: #06060a;
+    @apply text-paper-800 font-sans antialiased;
+    background: #fafaf6;
+    background-image:
+      radial-gradient(1200px 500px at 100% 0%, rgba(16, 185, 129, 0.08), transparent 60%),
+      radial-gradient(800px 400px at 0% 100%, rgba(20, 184, 166, 0.06), transparent 60%);
     min-height: 100vh;
     min-height: 100svh;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
-    position: relative;
   }
   ::selection {
-    @apply bg-accent/40 text-white;
+    @apply bg-accent/30 text-paper-900;
   }
-  /* iOS Safari: prevent zoom-on-focus by ensuring inputs are >= 16px */
   input, textarea, select {
     font-size: 16px;
+    color: inherit;
   }
   @media (min-width: 640px) {
     input, textarea, select {
@@ -38,103 +39,34 @@
 }
 
 @layer components {
-  .glass {
-    @apply bg-ink-900/50 backdrop-blur-md border border-white/10;
-  }
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
            text-sm font-medium transition-all duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply btn bg-gradient-to-br from-accent to-accent-deep text-ink-950
-           hover:shadow-lg hover:shadow-accent/20 hover:scale-[1.02];
+    @apply btn bg-gradient-to-br from-accent to-accent-deep text-white
+           hover:shadow-lg hover:shadow-accent/30 hover:scale-[1.02];
   }
   .btn-ghost {
-    @apply btn text-ink-200 hover:bg-white/5;
+    @apply btn text-paper-600 hover:bg-paper-200/60;
   }
   .input {
-    @apply w-full bg-ink-900/40 border border-white/10 rounded-xl
-           px-4 py-2.5 text-ink-50 placeholder:text-ink-500
-           focus:outline-none focus:border-accent/60 focus:ring-2 focus:ring-accent/15
+    @apply w-full bg-white border border-paper-300 rounded-xl
+           px-4 py-2.5 text-paper-800 placeholder:text-paper-500
+           focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20
            transition-all duration-150;
   }
-  .card {
-    @apply glass rounded-2xl p-4 shadow-lg shadow-black/20;
-  }
 }
 
-/* === Stars background === */
-.star {
-  position: absolute;
-  background: white;
-  border-radius: 50%;
-  opacity: 0;
-  animation: twinkle ease-in-out infinite;
-  box-shadow: 0 0 2px rgba(255, 255, 255, 0.4);
-}
-.star-bright {
-  background: #e9ddff;
-  box-shadow:
-    0 0 4px rgba(255, 255, 255, 0.9),
-    0 0 10px rgba(167, 139, 250, 0.6),
-    0 0 16px rgba(167, 139, 250, 0.3);
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: 0.15; transform: scale(0.85); }
-  50%      { opacity: 1;    transform: scale(1.15); }
-}
-
-/* Shooting stars */
-.shooting-star {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  background: linear-gradient(45deg, white, transparent);
-  border-radius: 50%;
-  opacity: 0;
-  box-shadow: 0 0 6px white;
-}
-.shooting-star::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 0;
-  width: 80px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6));
-  transform: translateY(-50%);
-}
-.shooting-star-1 {
-  top: 12%;
-  left: -10%;
-  animation: shoot 14s linear infinite;
-  animation-delay: 3s;
-}
-.shooting-star-2 {
-  top: 55%;
-  left: -10%;
-  animation: shoot 20s linear infinite;
-  animation-delay: 9s;
-}
-@keyframes shoot {
-  0%   { transform: translate(0, 0) rotate(15deg); opacity: 0; }
-  3%   { opacity: 1; }
-  20%  { transform: translate(120vw, 30vh) rotate(15deg); opacity: 0; }
-  100% { transform: translate(120vw, 30vh) rotate(15deg); opacity: 0; }
-}
-
-/* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.10);
   border-radius: 8px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
 
-/* Animations */
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-slide-up { animation: slideUp 0.3s ease-out; }
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }

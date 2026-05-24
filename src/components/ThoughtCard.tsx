@@ -83,15 +83,15 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
 
   return (
     <div
-      className={`group relative rounded-2xl border transition-all duration-200 ${
+      className={`group relative rounded-2xl border transition-all duration-200 p-4 shadow-sm ${
         isUrgent
-          ? 'bg-red-500/10 border-red-400/40 hover:border-red-400/60 shadow-red-500/10'
+          ? 'bg-red-50 border-red-300 hover:border-red-400 shadow-red-200/40'
           : isTask
             ? isDone
-              ? 'bg-ink-900/30 border-white/5'
-              : 'bg-ink-900/50 border-amber-400/15 hover:border-amber-400/30'
-            : 'bg-ink-900/50 border-white/10 hover:border-white/20'
-      } backdrop-blur-md p-4 shadow-lg shadow-black/10`}
+              ? 'bg-paper-200/40 border-paper-300/60'
+              : 'bg-white border-amber-200 hover:border-amber-300'
+            : 'bg-white border-paper-300 hover:border-paper-400'
+      }`}
     >
       <div className="flex items-start gap-3">
         {isTask && (
@@ -100,8 +100,8 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
             disabled={busy}
             className={`mt-0.5 shrink-0 h-5 w-5 rounded-md border-2 transition-all flex items-center justify-center ${
               isDone
-                ? 'bg-accent border-accent text-ink-950'
-                : 'border-amber-400/60 hover:border-amber-300 hover:bg-amber-400/10'
+                ? 'bg-accent border-accent text-white'
+                : 'border-amber-400 hover:border-amber-500 hover:bg-amber-50'
             }`}
             aria-label={isDone ? 'снять отметку' : 'отметить выполненной'}
           >
@@ -110,20 +110,20 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
         )}
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 text-xs text-ink-400">
+          <div className="flex items-center gap-2 text-xs text-paper-500">
             <span>{formatDate(item.created_at)}</span>
             {isTask && !isDone && !isUrgent && (
-              <span className="px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 text-[10px] uppercase tracking-wider font-medium">
+              <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] uppercase tracking-wider font-medium">
                 задача
               </span>
             )}
             {isUrgent && (
-              <span className="px-1.5 py-0.5 rounded bg-red-500/25 text-red-200 text-[10px] uppercase tracking-wider font-semibold animate-pulse">
+              <span className="px-1.5 py-0.5 rounded bg-red-200 text-red-800 text-[10px] uppercase tracking-wider font-semibold animate-pulse">
                 срочно
               </span>
             )}
             {typeof item.similarity === 'number' && (
-              <span className="px-1.5 py-0.5 rounded bg-accent/15 text-accent-soft">
+              <span className="px-1.5 py-0.5 rounded bg-accent-tint text-accent-deep">
                 {(item.similarity * 100).toFixed(0)}%
               </span>
             )}
@@ -154,7 +154,7 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
           ) : (
             <p
               className={`mt-1.5 whitespace-pre-wrap leading-relaxed ${
-                isDone ? 'text-ink-400 line-through decoration-ink-500/60' : 'text-ink-50'
+                isDone ? 'text-paper-500 line-through decoration-paper-400' : 'text-paper-800'
               }`}
             >
               {item.content}
@@ -166,7 +166,7 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
               {item.tags.map((t) => (
                 <span
                   key={t}
-                  className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/5 text-ink-300"
+                  className="text-xs px-2 py-0.5 rounded-full bg-paper-200/60 border border-paper-300 text-paper-600"
                 >
                   #{t}
                 </span>
@@ -179,13 +179,13 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
           <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex flex-col gap-1">
             <button
               onClick={() => setEditing(true)}
-              className="text-xs px-2 py-1 rounded-md text-ink-300 hover:bg-white/5 hover:text-ink-100"
+              className="text-xs px-2 py-1 rounded-md text-paper-600 hover:bg-paper-200/60 hover:text-paper-800"
             >
               изменить
             </button>
             <button
               onClick={del}
-              className="text-xs px-2 py-1 rounded-md text-red-300/80 hover:bg-red-500/10 hover:text-red-200 flex items-center gap-1"
+              className="text-xs px-2 py-1 rounded-md text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-1"
             >
               <TrashIcon size={12} />
             </button>

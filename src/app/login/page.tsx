@@ -36,15 +36,19 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="card w-full max-w-sm animate-slide-up">
+    <form
+      onSubmit={onSubmit}
+      className="w-full max-w-sm animate-slide-up bg-white rounded-2xl border border-paper-300 shadow-sm shadow-paper-400/20 p-6"
+    >
       <div className="mb-6 text-center">
-        <div className="inline-block text-3xl font-semibold bg-gradient-to-r from-accent-soft to-accent bg-clip-text text-transparent">
-          Minds
+        <div className="inline-flex h-14 w-14 rounded-2xl bg-gradient-to-br from-accent to-accent-deep items-center justify-center text-white text-2xl font-bold shadow-md shadow-accent/30 mb-3">
+          M
         </div>
-        <p className="mt-1 text-sm text-ink-300">Твой второй мозг</p>
+        <h1 className="text-2xl font-semibold text-paper-800">Minds</h1>
+        <p className="mt-1 text-sm text-paper-500">Твой второй мозг</p>
       </div>
 
-      <label className="block text-sm text-ink-200 mb-1">Логин</label>
+      <label className="block text-sm text-paper-700 mb-1">Логин</label>
       <input
         type="text"
         className="input mb-3"
@@ -55,7 +59,7 @@ function LoginForm() {
         required
       />
 
-      <label className="block text-sm text-ink-200 mb-1">Пароль</label>
+      <label className="block text-sm text-paper-700 mb-1">Пароль</label>
       <input
         type="password"
         className="input mb-4"
@@ -65,15 +69,15 @@ function LoginForm() {
         required
       />
 
-      {error && <div className="mb-3 text-sm text-red-300">{error}</div>}
+      {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
 
       <button type="submit" className="btn-primary w-full" disabled={loading}>
         {loading ? 'Вход…' : 'Войти'}
       </button>
 
-      <div className="mt-4 text-center text-sm text-ink-400">
+      <div className="mt-4 text-center text-sm text-paper-500">
         Нет аккаунта?{' '}
-        <Link href="/register" className="text-accent-soft hover:text-accent">
+        <Link href="/register" className="text-accent-deep hover:text-accent font-medium">
           Зарегистрироваться
         </Link>
       </div>

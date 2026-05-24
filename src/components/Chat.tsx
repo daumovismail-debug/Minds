@@ -283,166 +283,141 @@ export function Chat() {
     </div>
   );
 
-  // ─── EMPTY STATE: input fixed at vh-offset, greeting above ───
-  if (!hasResult) {
-    return (
-      <div className="relative h-full w-full overflow-hidden">
-        <div
-          className="absolute left-0 right-0 text-center px-4 animate-fade-in"
-          style={{ top: '14vh' }}
-        >
-          <div className="mx-auto" style={{ maxWidth: '42rem' }}>
-            <div className="min-h-[2.5em]">
-              <AnimatedGreeting />
-            </div>
-            {saved && (
-              <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent-deep bg-accent-tint px-3 py-1.5 rounded-full animate-fade-in">
-                <CheckIcon size={12} /> сохранено
-              </div>
-            )}
-          </div>
-        </div>
-        <div
-          className="absolute left-0 right-0 px-4"
-          style={{ top: '24vh' }}
-        >
-          <div className="mx-auto" style={{ maxWidth: '42rem' }}>
-            {inputBlock}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ─── WITH RESULT: input STAYS at same vh-offset, results scroll below ───
+  // ─── SIMPLE STABLE LAYOUT: input pinned at top, content below ───
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full mx-auto" style={{ maxWidth: '42rem' }}>
+      <div className="shrink-0 px-4 pt-3 pb-3">{inputBlock}</div>
       <div
-        className="absolute left-0 right-0 px-4"
-        style={{ top: '24vh' }}
-      >
-        <div className="mx-auto" style={{ maxWidth: '42rem' }}>
-          {inputBlock}
-        </div>
-      </div>
-      <div
-        className="absolute left-0 right-0 overflow-y-auto px-4"
+        className={`flex-1 min-h-0 px-4 ${hasResult ? 'overflow-y-auto' : 'overflow-hidden'}`}
         style={{
-          top: 'calc(24vh + 140px)',
-          bottom: 0,
           overscrollBehavior: 'contain',
           paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
         }}
       >
-        <div className="mx-auto pt-4 space-y-3" style={{ maxWidth: '42rem' }}>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="text-xs px-2.5 py-1 rounded-md text-paper-500 hover:text-paper-800 hover:bg-paper-200/60"
-              onClick={() => {
-                haptic.light();
-                clearResults();
-              }}
-            >
-              ✕ закрыть
-            </button>
-          </div>
-
-          {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          {duplicate && (
-            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
-              <div className="text-amber-800 text-sm font-medium">
-                Похоже, эта мысль уже записана
+        {!hasResult ? (
+          <div className="h-full flex items-center justify-center text-center">
+            <div className="animate-fade-in">
+              <div className="min-h-[2.5em]">
+                <AnimatedGreeting />
               </div>
-              <div className="mt-2.5 space-y-2">
-                {duplicate.similar.map((s) => (
-                  <div key={s.id} className="text-sm text-paper-800">
-                    <span className="text-paper-500 text-xs mr-2">
-                      {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
-                      {(s.similarity * 100).toFixed(0)}%
-                    </span>
-                    {s.content}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 flex gap-2 justify-end">
-                <button
-                  className="text-xs px-3 py-1.5 rounded-lg text-paper-700 hover:bg-paper-200/60"
-                  onClick={() => setDuplicate(null)}
-                >
-                  Отмена
-                </button>
-                <button
-                  className="text-xs px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent-deep"
-                  onClick={() => submit(true)}
-                  disabled={loading}
-                >
-                  Всё равно сохранить
-                </button>
-              </div>
-            </div>
-          )}
-
-          {answer && (
-            <div>
-              <div className="text-xs text-paper-500 mb-1.5 flex items-center gap-1.5">
-                <SparkleIcon size={11} className="text-sky-600" />
-                <span>{answer.question}</span>
-              </div>
-              <div className="rounded-2xl bg-white border border-paper-300 p-4 whitespace-pre-wrap leading-relaxed text-paper-800 shadow-sm shadow-paper-400/20">
-                {answer.answer}
-              </div>
-              {answer.sources.length > 0 && (
-                <div className="mt-2.5">
-                  <div className="text-xs text-paper-500 mb-1">Из твоих записей:</div>
-                  <div className="space-y-1">
-                    {answer.sources.map((s) => (
-                      <div key={s.id} className="text-xs text-paper-600">
-                        <span className="text-paper-500">
-                          #{s.id} · {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
-                          {(s.similarity * 100).toFixed(0)}%
-                        </span>{' '}
-                        — {s.content.slice(0, 140)}
-                        {s.content.length > 140 ? '…' : ''}
-                      </div>
-                    ))}
-                  </div>
+              {saved && (
+                <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent-deep bg-accent-tint px-3 py-1.5 rounded-full animate-fade-in">
+                  <CheckIcon size={12} /> сохранено
                 </div>
               )}
             </div>
-          )}
+          </div>
+        ) : (
+          <div className="py-3 space-y-3">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="text-xs px-2.5 py-1 rounded-md text-paper-500 hover:text-paper-800 hover:bg-paper-200/60"
+                onClick={() => {
+                  haptic.light();
+                  clearResults();
+                }}
+              >
+                ✕ закрыть
+              </button>
+            </div>
 
-          {list && (
-            <div>
-              <div className="text-xs text-paper-500 mb-2 flex items-center gap-1.5">
-                <SparkleIcon size={11} className="text-accent-deep" />
-                <span>{list.description || list.query}</span>
-                <span className="text-paper-400">· {list.items.length}</span>
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {error}
               </div>
-              {list.items.length === 0 ? (
-                <div className="rounded-2xl bg-white border border-paper-300 p-6 text-center text-sm text-paper-500">
-                  Ничего не нашлось по этому запросу
+            )}
+
+            {duplicate && (
+              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+                <div className="text-amber-800 text-sm font-medium">
+                  Похоже, эта мысль уже записана
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  {list.items.map((item) => (
-                    <ThoughtCard
-                      key={item.id}
-                      item={item}
-                      onDelete={removeListItem}
-                      onUpdate={updateListItem}
-                    />
+                <div className="mt-2.5 space-y-2">
+                  {duplicate.similar.map((s) => (
+                    <div key={s.id} className="text-sm text-paper-800">
+                      <span className="text-paper-500 text-xs mr-2">
+                        {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
+                        {(s.similarity * 100).toFixed(0)}%
+                      </span>
+                      {s.content}
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+                <div className="mt-3 flex gap-2 justify-end">
+                  <button
+                    className="text-xs px-3 py-1.5 rounded-lg text-paper-700 hover:bg-paper-200/60"
+                    onClick={() => setDuplicate(null)}
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    className="text-xs px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent-deep"
+                    onClick={() => submit(true)}
+                    disabled={loading}
+                  >
+                    Всё равно сохранить
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {answer && (
+              <div>
+                <div className="text-xs text-paper-500 mb-1.5 flex items-center gap-1.5">
+                  <SparkleIcon size={11} className="text-sky-600" />
+                  <span>{answer.question}</span>
+                </div>
+                <div className="rounded-2xl bg-white border border-paper-300 p-4 whitespace-pre-wrap leading-relaxed text-paper-800 shadow-sm shadow-paper-400/20">
+                  {answer.answer}
+                </div>
+                {answer.sources.length > 0 && (
+                  <div className="mt-2.5">
+                    <div className="text-xs text-paper-500 mb-1">Из твоих записей:</div>
+                    <div className="space-y-1">
+                      {answer.sources.map((s) => (
+                        <div key={s.id} className="text-xs text-paper-600">
+                          <span className="text-paper-500">
+                            #{s.id} · {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
+                            {(s.similarity * 100).toFixed(0)}%
+                          </span>{' '}
+                          — {s.content.slice(0, 140)}
+                          {s.content.length > 140 ? '…' : ''}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {list && (
+              <div>
+                <div className="text-xs text-paper-500 mb-2 flex items-center gap-1.5">
+                  <SparkleIcon size={11} className="text-accent-deep" />
+                  <span>{list.description || list.query}</span>
+                  <span className="text-paper-400">· {list.items.length}</span>
+                </div>
+                {list.items.length === 0 ? (
+                  <div className="rounded-2xl bg-white border border-paper-300 p-6 text-center text-sm text-paper-500">
+                    Ничего не нашлось по этому запросу
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {list.items.map((item) => (
+                      <ThoughtCard
+                        key={item.id}
+                        item={item}
+                        onDelete={removeListItem}
+                        onUpdate={updateListItem}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

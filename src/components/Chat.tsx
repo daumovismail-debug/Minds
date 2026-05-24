@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { classify, type Intent } from '@/lib/classify';
+import { haptic } from '@/lib/haptic';
 import { ArrowUpIcon, CheckIcon, SparkleIcon } from './icons';
+import { AnimatedGreeting } from './AnimatedGreeting';
 import { ThoughtCard, type ThoughtItem } from './ThoughtCard';
 
 type Mode = 'auto' | Intent;
@@ -175,6 +177,7 @@ export function Chat() {
         setMode('auto');
         setLlmDetected(null);
         setSaved(true);
+        haptic.success();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Сетевая ошибка');
@@ -210,6 +213,7 @@ export function Chat() {
               onMouseDown={(e) => e.preventDefault()}
               onTouchStart={(e) => e.preventDefault()}
               onClick={() => {
+                haptic.light();
                 setMode(chip.key);
                 textareaRef.current?.focus();
               }}
@@ -234,6 +238,7 @@ export function Chat() {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
+              haptic.tap();
               submit();
             }
           }}
@@ -259,7 +264,10 @@ export function Chat() {
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onTouchStart={(e) => e.preventDefault()}
-            onClick={() => submit(false)}
+            onClick={() => {
+              haptic.tap();
+              submit(false);
+            }}
             disabled={loading || !text.trim()}
             className="h-9 w-9 rounded-full bg-gradient-to-br from-accent to-accent-deep text-white flex items-center justify-center transition-all duration-150 hover:scale-105 hover:shadow-lg hover:shadow-accent/30 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed"
             aria-label="Отправить"
@@ -275,15 +283,16 @@ export function Chat() {
     </div>
   );
 
-  // ─── EMPTY STATE: input centered with greeting above ───
+  // ─── EMPTY STATE: input pinned at stable vh-offset, doesn't move with keyboard ───
   if (!hasResult) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-4 w-full mx-auto" style={{ maxWidth: '42rem' }}>
-        <div className="w-full">
-          <div className="text-center mb-6 animate-fade-in">
-            <h1 className="text-3xl sm:text-4xl font-semibold text-paper-800">
-              Что у тебя на уме?
-            </h1>
+      <div className="relative h-full w-full overflow-hidden">
+        <div
+          className="absolute left-1/2 -translate-x-1/2 w-full px-4"
+          style={{ top: '28vh', maxWidth: '42rem' }}
+        >
+          <div className="text-center mb-6 min-h-[2.5em]">
+            <AnimatedGreeting />
             {saved && (
               <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent-deep bg-accent-tint px-3 py-1.5 rounded-full animate-fade-in">
                 <CheckIcon size={12} /> сохранено

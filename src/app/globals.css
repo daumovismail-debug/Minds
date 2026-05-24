@@ -16,7 +16,8 @@
     min-height: 100vh;
     min-height: 100svh;
     -webkit-tap-highlight-color: transparent;
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;
+    position: relative;
   }
   ::selection {
     @apply bg-accent/40 text-white;

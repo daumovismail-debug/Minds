@@ -283,45 +283,66 @@ export function Chat() {
     </div>
   );
 
-  // ─── EMPTY STATE: input pinned at stable vh-offset, doesn't move with keyboard ───
+  // ─── EMPTY STATE: input fixed at vh-offset, greeting above ───
   if (!hasResult) {
     return (
       <div className="relative h-full w-full overflow-hidden">
         <div
-          className="absolute left-1/2 -translate-x-1/2 w-full px-4"
-          style={{ top: '28vh', maxWidth: '42rem' }}
+          className="absolute left-0 right-0 text-center px-4 animate-fade-in"
+          style={{ top: '14vh' }}
         >
-          <div className="text-center mb-6 min-h-[2.5em]">
-            <AnimatedGreeting />
+          <div className="mx-auto" style={{ maxWidth: '42rem' }}>
+            <div className="min-h-[2.5em]">
+              <AnimatedGreeting />
+            </div>
             {saved && (
               <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent-deep bg-accent-tint px-3 py-1.5 rounded-full animate-fade-in">
                 <CheckIcon size={12} /> сохранено
               </div>
             )}
           </div>
-          {inputBlock}
+        </div>
+        <div
+          className="absolute left-0 right-0 px-4"
+          style={{ top: '24vh' }}
+        >
+          <div className="mx-auto" style={{ maxWidth: '42rem' }}>
+            {inputBlock}
+          </div>
         </div>
       </div>
     );
   }
 
-  // ─── WITH RESULT: input pinned to top, results scroll below ───
+  // ─── WITH RESULT: input STAYS at same vh-offset, results scroll below ───
   return (
-    <div className="flex flex-col h-full w-full mx-auto" style={{ maxWidth: '42rem' }}>
-      <div className="shrink-0 px-4 pt-3 pb-3">{inputBlock}</div>
+    <div className="relative h-full w-full overflow-hidden">
       <div
-        className="flex-1 min-h-0 overflow-y-auto px-4"
+        className="absolute left-0 right-0 px-4"
+        style={{ top: '24vh' }}
+      >
+        <div className="mx-auto" style={{ maxWidth: '42rem' }}>
+          {inputBlock}
+        </div>
+      </div>
+      <div
+        className="absolute left-0 right-0 overflow-y-auto px-4"
         style={{
+          top: 'calc(24vh + 140px)',
+          bottom: 0,
           overscrollBehavior: 'contain',
           paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
         }}
       >
-        <div className="py-2 space-y-3">
+        <div className="mx-auto pt-4 space-y-3" style={{ maxWidth: '42rem' }}>
           <div className="flex justify-end">
             <button
               type="button"
               className="text-xs px-2.5 py-1 rounded-md text-paper-500 hover:text-paper-800 hover:bg-paper-200/60"
-              onClick={clearResults}
+              onClick={() => {
+                haptic.light();
+                clearResults();
+              }}
             >
               ✕ закрыть
             </button>

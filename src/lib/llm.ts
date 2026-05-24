@@ -19,15 +19,49 @@ export type AnswerInput = {
 
 export type IntentResult = 'thought' | 'question' | 'task' | 'list';
 
-const CLASSIFIER_PROMPT = `Ты определяешь тип короткого сообщения от пользователя. Ответь ОДНИМ словом из списка: thought, question, task, list.
+const CLASSIFIER_PROMPT = `Ты определяешь тип сообщения. Ответ — РОВНО одно слово БЕЗ кавычек и пояснений: task ИЛИ question ИЛИ list ИЛИ thought.
 
-Правила:
-- "task" — что-то нужно сделать, действие на будущее. Глаголы: купить, позвонить, написать, сделать, починить, оплатить, не забыть, забрать, заехать и т.п. Также если пользователь явно говорит "это задача", "задача:", "запиши задачу", "добавь задачу", "напомни".
-- "question" — пользователь спрашивает что-то у себя. Признаки: вопросительные слова (что, как, почему, стоит ли, нужно ли), знак "?", частица "ли", обращение "узнай", "скажи мне".
-- "list" — запрос показать ранее записанное. Признаки: "покажи", "выведи", "найди мне", "что у меня", "сколько у меня", "мои задачи/мысли", "какие задачи/мысли". Также "пока же" — это опечатка от "покажи".
-- "thought" — мысль, идея, наблюдение, рефлексия, принцип. "Я понял что", "важно", "стоит", "лучше", "мне кажется" и т.п. Это запись о себе или своих принципах.
+ТИПЫ:
 
-Никаких объяснений. Только одно слово.`;
+task — пользователь хочет что-то сделать в будущем (действие, дело).
+Примеры:
+  "купить хлеб" → task
+  "позвонить маме" → task
+  "помыть посуду срочно" → task
+  "не забыть оплатить интернет" → task
+  "это задача — забрать посылку" → task
+  "запиши задачу починить кран" → task
+  "напомни взять зонт" → task
+
+question — пользователь задаёт себе вопрос (хочет получить ответ).
+Примеры:
+  "стоит ли мне есть после 18?" → question
+  "что я думал про сон" → question
+  "как лучше начать день" → question
+  "почему я устаю к вечеру" → question
+  "узнай у себя что я писал про деньги" → question
+  "помоги мне понять стоит ли уволиться" → question
+
+list — пользователь хочет УВИДЕТЬ свои уже сохранённые записи (показать, найти, перечислить).
+Примеры:
+  "покажи мысли" → list
+  "пока же мысли" → list (опечатка от "покажи")
+  "мысли покажи" → list
+  "что у меня в задачах" → list
+  "какие у меня срочные" → list
+  "мои задачи на сегодня" → list
+  "найди мне записи за вчера" → list
+  "выведи всё" → list
+
+thought — мысль, идея, наблюдение, вывод, принцип, ощущение, рефлексия о себе.
+Примеры:
+  "я понял что важно высыпаться" → thought
+  "мне кажется кофе вечером — плохая идея" → thought
+  "лучше работать утром" → thought
+  "сегодня хорошо посидели с другом" → thought
+  "важно говорить правду" → thought
+
+Выбери ОДНО слово из: task, question, list, thought.`;
 
 type GroqResponse = {
   choices?: Array<{ message?: { content?: string } }>;
@@ -61,7 +95,14 @@ export async function classifyIntent(text: string): Promise<IntentResult> {
   }
 
   const data = (await res.json()) as GroqResponse;
-  const raw = data.choices?.[0]?.message?.content?.trim().toLowerCase() ?? '';
+  const raw = (data.choices?.[0]?.message?.content ?? '').trim().toLowerCase();
+  // strip quotes/punctuation
+  const clean = raw.replace(/[^a-zа-яё]/gi, ' ').trim().split(/\s+/)[0] ?? '';
+  if (clean === 'task' || clean === 'задача') return 'task';
+  if (clean === 'question' || clean === 'вопрос') return 'question';
+  if (clean === 'list' || clean === 'список') return 'list';
+  if (clean === 'thought' || clean === 'мысль') return 'thought';
+  // fallback parse: look for any of the keywords in the raw response
   if (raw.includes('task')) return 'task';
   if (raw.includes('question')) return 'question';
   if (raw.includes('list')) return 'list';

@@ -72,7 +72,6 @@ export function Chat() {
   const detected: Intent =
     mode !== 'auto' ? mode : llmDetected ?? (text.trim() ? classify(text) : 'thought');
 
-  // auto-grow textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -80,14 +79,12 @@ export function Chat() {
     el.style.height = Math.min(el.scrollHeight, 180) + 'px';
   }, [text]);
 
-  // saved flash
   useEffect(() => {
     if (!saved) return;
     const t = setTimeout(() => setSaved(false), 1800);
     return () => clearTimeout(t);
   }, [saved]);
 
-  // debounced LLM classify
   useEffect(() => {
     const t = text.trim();
     if (mode !== 'auto' || !t || t.length < 2) {
@@ -200,85 +197,109 @@ export function Chat() {
   const showHint = text.trim().length > 0;
   const intentMeta = INTENT_LABEL[detected];
 
-  return (
-    <div className="flex flex-col h-full w-full mx-auto" style={{ maxWidth: '42rem' }}>
-      {/* TOP: input bar pinned (never moves with keyboard) */}
-      <div className="shrink-0 px-4 pt-3 pb-3">
-        <div className="flex items-center justify-center gap-1 mb-2 text-xs flex-wrap">
-          {MODE_CHIPS.map((chip) => {
-            const isActive = mode === chip.key;
-            return (
-              <button
-                key={chip.key}
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onTouchStart={(e) => e.preventDefault()}
-                onClick={() => {
-                  setMode(chip.key);
-                  textareaRef.current?.focus();
-                }}
-                className={`px-3 py-1.5 rounded-full transition-all ${
-                  isActive ? chip.active : 'text-paper-500 hover:text-paper-800 hover:bg-paper-200/60'
-                }`}
-              >
-                {chip.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="relative rounded-3xl bg-white border border-paper-300 shadow-sm shadow-paper-400/30 transition-all focus-within:border-accent focus-within:shadow-md focus-within:shadow-accent/15">
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Запиши мысль, задачу, задай вопрос или попроси показать…"
-            rows={1}
-            className="w-full bg-transparent border-0 outline-none resize-none px-5 pt-4 pb-2 text-[16px] leading-relaxed text-paper-800 placeholder:text-paper-500"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                submit();
-              }
-            }}
-          />
-          <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-1">
-            <div className="text-xs text-paper-500 flex items-center gap-1.5 min-w-0 flex-1">
-              {showHint ? (
-                <span className="truncate animate-fade-in flex items-center gap-1.5">
-                  <SparkleIcon size={11} className={intentMeta.color} />
-                  <span className={intentMeta.color + ' font-medium'}>{intentMeta.label}</span>
-                  {classifying && mode === 'auto' && (
-                    <span className="text-paper-400">· думаю…</span>
-                  )}
-                  {!classifying && (
-                    <span className="text-paper-400">— {ACTION_LABEL[detected]}</span>
-                  )}
-                </span>
-              ) : (
-                <span className="hidden sm:inline">Enter — отправить · Shift+Enter — новая строка</span>
-              )}
-            </div>
+  // ─── INPUT BLOCK (used in both layouts) ───
+  const inputBlock = (
+    <div className="w-full">
+      <div className="flex items-center justify-center gap-1 mb-2 text-xs flex-wrap">
+        {MODE_CHIPS.map((chip) => {
+          const isActive = mode === chip.key;
+          return (
             <button
+              key={chip.key}
               type="button"
               onMouseDown={(e) => e.preventDefault()}
               onTouchStart={(e) => e.preventDefault()}
-              onClick={() => submit(false)}
-              disabled={loading || !text.trim()}
-              className="h-9 w-9 rounded-full bg-gradient-to-br from-accent to-accent-deep text-white flex items-center justify-center transition-all duration-150 hover:scale-105 hover:shadow-lg hover:shadow-accent/30 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed"
-              aria-label="Отправить"
+              onClick={() => {
+                setMode(chip.key);
+                textareaRef.current?.focus();
+              }}
+              className={`px-3 py-1.5 rounded-full transition-all ${
+                isActive ? chip.active : 'text-paper-500 hover:text-paper-800 hover:bg-paper-200/60'
+              }`}
             >
-              {loading ? (
-                <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
-              ) : (
-                <ArrowUpIcon size={16} />
-              )}
+              {chip.label}
             </button>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* BELOW: content - empty greeting or scrollable results */}
+      <div className="relative rounded-3xl bg-white border border-paper-300 shadow-sm shadow-paper-400/30 transition-all focus-within:border-accent focus-within:shadow-md focus-within:shadow-accent/15">
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Запиши мысль, задачу, задай вопрос или попроси показать…"
+          rows={1}
+          className="w-full bg-transparent border-0 outline-none resize-none px-5 pt-4 pb-2 text-[16px] leading-relaxed text-paper-800 placeholder:text-paper-500"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-1">
+          <div className="text-xs text-paper-500 flex items-center gap-1.5 min-w-0 flex-1">
+            {showHint ? (
+              <span className="truncate animate-fade-in flex items-center gap-1.5">
+                <SparkleIcon size={11} className={intentMeta.color} />
+                <span className={intentMeta.color + ' font-medium'}>{intentMeta.label}</span>
+                {classifying && mode === 'auto' && (
+                  <span className="text-paper-400">· думаю…</span>
+                )}
+                {!classifying && (
+                  <span className="text-paper-400">— {ACTION_LABEL[detected]}</span>
+                )}
+              </span>
+            ) : (
+              <span className="hidden sm:inline">Enter — отправить · Shift+Enter — новая строка</span>
+            )}
+          </div>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchStart={(e) => e.preventDefault()}
+            onClick={() => submit(false)}
+            disabled={loading || !text.trim()}
+            className="h-9 w-9 rounded-full bg-gradient-to-br from-accent to-accent-deep text-white flex items-center justify-center transition-all duration-150 hover:scale-105 hover:shadow-lg hover:shadow-accent/30 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed"
+            aria-label="Отправить"
+          >
+            {loading ? (
+              <span className="h-3 w-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+            ) : (
+              <ArrowUpIcon size={16} />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── EMPTY STATE: input centered with greeting above ───
+  if (!hasResult) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full px-4 w-full mx-auto" style={{ maxWidth: '42rem' }}>
+        <div className="w-full">
+          <div className="text-center mb-6 animate-fade-in">
+            <h1 className="text-3xl sm:text-4xl font-semibold text-paper-800">
+              Что у тебя на уме?
+            </h1>
+            {saved && (
+              <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-accent-deep bg-accent-tint px-3 py-1.5 rounded-full animate-fade-in">
+                <CheckIcon size={12} /> сохранено
+              </div>
+            )}
+          </div>
+          {inputBlock}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── WITH RESULT: input pinned to top, results scroll below ───
+  return (
+    <div className="flex flex-col h-full w-full mx-auto" style={{ maxWidth: '42rem' }}>
+      <div className="shrink-0 px-4 pt-3 pb-3">{inputBlock}</div>
       <div
         className="flex-1 min-h-0 overflow-y-auto px-4"
         style={{
@@ -286,126 +307,112 @@ export function Chat() {
           paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
         }}
       >
-        {!hasResult ? (
-          <div className="h-full flex items-center justify-center text-center">
-            <div className="animate-fade-in">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-paper-800">
-                Что у тебя на уме?
-              </h1>
-              {saved && (
-                <div className="mt-4 inline-flex items-center gap-1.5 text-xs text-accent-deep bg-accent-tint px-3 py-1.5 rounded-full animate-fade-in">
-                  <CheckIcon size={12} /> сохранено
+        <div className="py-2 space-y-3">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="text-xs px-2.5 py-1 rounded-md text-paper-500 hover:text-paper-800 hover:bg-paper-200/60"
+              onClick={clearResults}
+            >
+              ✕ закрыть
+            </button>
+          </div>
+
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {duplicate && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+              <div className="text-amber-800 text-sm font-medium">
+                Похоже, эта мысль уже записана
+              </div>
+              <div className="mt-2.5 space-y-2">
+                {duplicate.similar.map((s) => (
+                  <div key={s.id} className="text-sm text-paper-800">
+                    <span className="text-paper-500 text-xs mr-2">
+                      {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
+                      {(s.similarity * 100).toFixed(0)}%
+                    </span>
+                    {s.content}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex gap-2 justify-end">
+                <button
+                  className="text-xs px-3 py-1.5 rounded-lg text-paper-700 hover:bg-paper-200/60"
+                  onClick={() => setDuplicate(null)}
+                >
+                  Отмена
+                </button>
+                <button
+                  className="text-xs px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent-deep"
+                  onClick={() => submit(true)}
+                  disabled={loading}
+                >
+                  Всё равно сохранить
+                </button>
+              </div>
+            </div>
+          )}
+
+          {answer && (
+            <div>
+              <div className="text-xs text-paper-500 mb-1.5 flex items-center gap-1.5">
+                <SparkleIcon size={11} className="text-sky-600" />
+                <span>{answer.question}</span>
+              </div>
+              <div className="rounded-2xl bg-white border border-paper-300 p-4 whitespace-pre-wrap leading-relaxed text-paper-800 shadow-sm shadow-paper-400/20">
+                {answer.answer}
+              </div>
+              {answer.sources.length > 0 && (
+                <div className="mt-2.5">
+                  <div className="text-xs text-paper-500 mb-1">Из твоих записей:</div>
+                  <div className="space-y-1">
+                    {answer.sources.map((s) => (
+                      <div key={s.id} className="text-xs text-paper-600">
+                        <span className="text-paper-500">
+                          #{s.id} · {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
+                          {(s.similarity * 100).toFixed(0)}%
+                        </span>{' '}
+                        — {s.content.slice(0, 140)}
+                        {s.content.length > 140 ? '…' : ''}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-        ) : (
-          <div className="py-3 space-y-3">
-            <div className="flex justify-end">
-              <button
-                className="text-xs px-2.5 py-1 rounded-md text-paper-500 hover:text-paper-800 hover:bg-paper-200/60"
-                onClick={clearResults}
-              >
-                ✕ закрыть
-              </button>
-            </div>
+          )}
 
-            {error && (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                {error}
+          {list && (
+            <div>
+              <div className="text-xs text-paper-500 mb-2 flex items-center gap-1.5">
+                <SparkleIcon size={11} className="text-accent-deep" />
+                <span>{list.description || list.query}</span>
+                <span className="text-paper-400">· {list.items.length}</span>
               </div>
-            )}
-
-            {duplicate && (
-              <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
-                <div className="text-amber-800 text-sm font-medium">
-                  Похоже, эта мысль уже записана
+              {list.items.length === 0 ? (
+                <div className="rounded-2xl bg-white border border-paper-300 p-6 text-center text-sm text-paper-500">
+                  Ничего не нашлось по этому запросу
                 </div>
-                <div className="mt-2.5 space-y-2">
-                  {duplicate.similar.map((s) => (
-                    <div key={s.id} className="text-sm text-paper-800">
-                      <span className="text-paper-500 text-xs mr-2">
-                        {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
-                        {(s.similarity * 100).toFixed(0)}%
-                      </span>
-                      {s.content}
-                    </div>
+              ) : (
+                <div className="space-y-2">
+                  {list.items.map((item) => (
+                    <ThoughtCard
+                      key={item.id}
+                      item={item}
+                      onDelete={removeListItem}
+                      onUpdate={updateListItem}
+                    />
                   ))}
                 </div>
-                <div className="mt-3 flex gap-2 justify-end">
-                  <button
-                    className="text-xs px-3 py-1.5 rounded-lg text-paper-700 hover:bg-paper-200/60"
-                    onClick={() => setDuplicate(null)}
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    className="text-xs px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent-deep"
-                    onClick={() => submit(true)}
-                    disabled={loading}
-                  >
-                    Всё равно сохранить
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {answer && (
-              <div>
-                <div className="text-xs text-paper-500 mb-1.5 flex items-center gap-1.5">
-                  <SparkleIcon size={11} className="text-sky-600" />
-                  <span>{answer.question}</span>
-                </div>
-                <div className="rounded-2xl bg-white border border-paper-300 p-4 whitespace-pre-wrap leading-relaxed text-paper-800 shadow-sm shadow-paper-400/20">
-                  {answer.answer}
-                </div>
-                {answer.sources.length > 0 && (
-                  <div className="mt-2.5">
-                    <div className="text-xs text-paper-500 mb-1">Из твоих записей:</div>
-                    <div className="space-y-1">
-                      {answer.sources.map((s) => (
-                        <div key={s.id} className="text-xs text-paper-600">
-                          <span className="text-paper-500">
-                            #{s.id} · {new Date(s.created_at).toLocaleDateString('ru-RU')} ·{' '}
-                            {(s.similarity * 100).toFixed(0)}%
-                          </span>{' '}
-                          — {s.content.slice(0, 140)}
-                          {s.content.length > 140 ? '…' : ''}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {list && (
-              <div>
-                <div className="text-xs text-paper-500 mb-2 flex items-center gap-1.5">
-                  <SparkleIcon size={11} className="text-accent-deep" />
-                  <span>{list.description || list.query}</span>
-                  <span className="text-paper-400">· {list.items.length}</span>
-                </div>
-                {list.items.length === 0 ? (
-                  <div className="rounded-2xl bg-white border border-paper-300 p-6 text-center text-sm text-paper-500">
-                    Ничего не нашлось по этому запросу
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {list.items.map((item) => (
-                      <ThoughtCard
-                        key={item.id}
-                        item={item}
-                        onDelete={removeListItem}
-                        onUpdate={updateListItem}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

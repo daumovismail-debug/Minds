@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
+import { AuroraBackground } from '@/components/AuroraBackground';
 
 export const metadata: Metadata = {
   title: 'Minds',
@@ -46,7 +47,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <AuroraBackground />
+        {children}
+      </body>
     </html>
   );
 }

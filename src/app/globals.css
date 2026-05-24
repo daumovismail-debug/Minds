@@ -12,9 +12,6 @@
   body {
     @apply text-paper-800 font-sans antialiased;
     background: #fafaf6;
-    background-image:
-      radial-gradient(1200px 500px at 100% 0%, rgba(16, 185, 129, 0.08), transparent 60%),
-      radial-gradient(800px 400px at 0% 100%, rgba(20, 184, 166, 0.06), transparent 60%);
     min-height: 100vh;
     min-height: 100svh;
     -webkit-tap-highlight-color: transparent;
@@ -66,6 +63,69 @@
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+
+/* === Aurora background === */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  background: #fafaf6;
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.aurora-blob-1 {
+  width: 520px; height: 520px;
+  top: -180px; left: -120px;
+  background: radial-gradient(circle, #6ee7b7 0%, transparent 70%);
+  animation: float-a 22s ease-in-out infinite;
+}
+.aurora-blob-2 {
+  width: 620px; height: 620px;
+  bottom: -240px; right: -160px;
+  background: radial-gradient(circle, #99f6e4 0%, transparent 70%);
+  animation: float-b 26s ease-in-out infinite;
+}
+.aurora-blob-3 {
+  width: 380px; height: 380px;
+  top: 35%; right: -100px;
+  background: radial-gradient(circle, #fde68a 0%, transparent 70%);
+  opacity: 0.35;
+  animation: float-c 30s ease-in-out infinite;
+}
+.aurora-blob-4 {
+  width: 340px; height: 340px;
+  bottom: 25%; left: -80px;
+  background: radial-gradient(circle, #fbcfe8 0%, transparent 70%);
+  opacity: 0.30;
+  animation: float-d 28s ease-in-out infinite;
+}
+
+@keyframes float-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(40px, 60px) scale(1.1); }
+}
+@keyframes float-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-50px, -40px) scale(1.08); }
+}
+@keyframes float-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-30px, 50px) scale(1.12); }
+}
+@keyframes float-d {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(40px, -50px) scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none; }
+}
 
 .animate-fade-in { animation: fadeIn 0.3s ease-out; }
 .animate-slide-up { animation: slideUp 0.3s ease-out; }

@@ -210,7 +210,13 @@ export function Chat() {
             return (
               <button
                 key={chip.key}
-                onClick={() => setMode(chip.key)}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchStart={(e) => e.preventDefault()}
+                onClick={() => {
+                  setMode(chip.key);
+                  textareaRef.current?.focus();
+                }}
                 className={`px-3 py-1.5 rounded-full transition-all ${
                   isActive ? chip.active : 'text-paper-500 hover:text-paper-800 hover:bg-paper-200/60'
                 }`}
@@ -254,6 +260,9 @@ export function Chat() {
               )}
             </div>
             <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onTouchStart={(e) => e.preventDefault()}
               onClick={() => submit(false)}
               disabled={loading || !text.trim()}
               className="h-9 w-9 rounded-full bg-gradient-to-br from-accent to-accent-deep text-white flex items-center justify-center transition-all duration-150 hover:scale-105 hover:shadow-lg hover:shadow-accent/30 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed"

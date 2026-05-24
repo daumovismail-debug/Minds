@@ -40,6 +40,9 @@ export async function POST(req: Request) {
     manualMode === 'list'
   ) {
     intent = manualMode;
+  } else if (text.endsWith('?')) {
+    // Hard rule: ends with "?" → always a question
+    intent = 'question';
   } else {
     try {
       intent = await classifyIntent(text);

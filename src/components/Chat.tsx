@@ -65,6 +65,7 @@ export function Chat() {
   const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const resultsScrollRef = useRef<HTMLDivElement>(null);
   const lastClassifiedRef = useRef<string>('');
@@ -81,6 +82,7 @@ export function Chat() {
       raf = requestAnimationFrame(() => {
         const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         document.documentElement.style.setProperty('--kb', `${offset}px`);
+        setKeyboardOpen(offset > 80);
       });
     };
     vv.addEventListener('resize', update);
@@ -125,6 +127,12 @@ export function Chat() {
     const t = text.trim();
     if (mode !== 'auto' || !t || t.length < 2) {
       setLlmDetected(null);
+      return;
+    }
+    // Hard rule: ends with "?" → always a question, no LLM call needed
+    if (t.endsWith('?')) {
+      setLlmDetected('question');
+      lastClassifiedRef.current = t;
       return;
     }
     if (lastClassifiedRef.current === t) return;
@@ -297,10 +305,15 @@ export function Chat() {
     </>
   );
 
-  // ─── EMPTY STATE: input centered with greeting above ───
+  // ─── EMPTY STATE: input centered when keyboard closed, bottom when open ───
   if (!hasResult) {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-4 w-full mx-auto" style={{ maxWidth: '42rem' }}>
+      <div
+        className={`flex flex-col items-center h-full px-4 w-full mx-auto transition-all ${
+          keyboardOpen ? 'justify-end pb-3' : 'justify-center'
+        }`}
+        style={{ maxWidth: '42rem' }}
+      >
         <div className="w-full">
           <div className="text-center mb-6 animate-fade-in">
             <h1 className="text-3xl sm:text-4xl font-semibold bg-gradient-to-br from-white via-ink-100 to-accent-soft bg-clip-text text-transparent">

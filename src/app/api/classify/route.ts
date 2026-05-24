@@ -13,6 +13,11 @@ export async function POST(req: Request) {
   const text = typeof body?.text === 'string' ? body.text.trim() : '';
   if (!text) return NextResponse.json({ intent: 'thought' });
 
+  // Hard rule: ends with "?" → always a question
+  if (text.endsWith('?')) {
+    return NextResponse.json({ intent: 'question' });
+  }
+
   try {
     const intent = await classifyIntent(text);
     return NextResponse.json({ intent });

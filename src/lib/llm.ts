@@ -1,5 +1,6 @@
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 export const CHAT_MODEL = 'llama-3.3-70b-versatile';
+export const CLASSIFIER_MODEL = 'llama-3.1-8b-instant';
 
 const SYSTEM_PROMPT = `Ты — личный ассистент пользователя. Твоё единственное знание — мысли пользователя, которые он сам записал ниже.
 
@@ -16,10 +17,56 @@ export type AnswerInput = {
   thoughts: Array<{ id: number; content: string; created_at: string; similarity: number }>;
 };
 
+export type IntentResult = 'thought' | 'question' | 'task' | 'list';
+
+const CLASSIFIER_PROMPT = `Ты определяешь тип короткого сообщения от пользователя. Ответь ОДНИМ словом из списка: thought, question, task, list.
+
+Правила:
+- "task" — что-то нужно сделать, действие на будущее. Глаголы: купить, позвонить, написать, сделать, починить, оплатить, не забыть, забрать, заехать и т.п. Также если пользователь явно говорит "это задача", "задача:", "запиши задачу", "добавь задачу", "напомни".
+- "question" — пользователь спрашивает что-то у себя. Признаки: вопросительные слова (что, как, почему, стоит ли, нужно ли), знак "?", частица "ли", обращение "узнай", "скажи мне".
+- "list" — запрос показать ранее записанное. Признаки: "покажи", "выведи", "найди мне", "что у меня", "сколько у меня", "мои задачи/мысли", "какие задачи/мысли". Также "пока же" — это опечатка от "покажи".
+- "thought" — мысль, идея, наблюдение, рефлексия, принцип. "Я понял что", "важно", "стоит", "лучше", "мне кажется" и т.п. Это запись о себе или своих принципах.
+
+Никаких объяснений. Только одно слово.`;
+
 type GroqResponse = {
   choices?: Array<{ message?: { content?: string } }>;
   error?: { message?: string };
 };
+
+export async function classifyIntent(text: string): Promise<IntentResult> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error('GROQ_API_KEY is not configured');
+
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify({
+      model: CLASSIFIER_MODEL,
+      temperature: 0,
+      max_tokens: 6,
+      messages: [
+        { role: 'system', content: CLASSIFIER_PROMPT },
+        { role: 'user', content: text },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Groq classify ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  const data = (await res.json()) as GroqResponse;
+  const raw = data.choices?.[0]?.message?.content?.trim().toLowerCase() ?? '';
+  if (raw.includes('task')) return 'task';
+  if (raw.includes('question')) return 'question';
+  if (raw.includes('list')) return 'list';
+  return 'thought';
+}
 
 export async function answerFromThoughts({ question, thoughts }: AnswerInput): Promise<string> {
   const key = process.env.GROQ_API_KEY;

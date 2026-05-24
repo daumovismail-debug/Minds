@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { q, toVectorLiteral } from '@/lib/db';
 import { embed, embedQuery } from '@/lib/embeddings';
-import { answerFromThoughts } from '@/lib/llm';
+import { answerFromThoughts, classifyIntent } from '@/lib/llm';
 import { getCurrentSession } from '@/lib/auth';
-import { classify, isUrgent } from '@/lib/classify';
+import { classify, isUrgent, type Intent } from '@/lib/classify';
 import { parseListQuery } from '@/lib/list-parser';
 
 export const dynamic = 'force-dynamic';
@@ -32,10 +32,22 @@ export async function POST(req: Request) {
 
   const text = body.text.trim();
   const manualMode = body.mode;
-  const intent =
-    manualMode === 'thought' || manualMode === 'question' || manualMode === 'task' || manualMode === 'list'
-      ? manualMode
-      : classify(text);
+  let intent: Intent;
+  if (
+    manualMode === 'thought' ||
+    manualMode === 'question' ||
+    manualMode === 'task' ||
+    manualMode === 'list'
+  ) {
+    intent = manualMode;
+  } else {
+    try {
+      intent = await classifyIntent(text);
+    } catch (e) {
+      console.warn('LLM classifier failed, falling back to heuristic:', e);
+      intent = classify(text);
+    }
+  }
   const force: boolean = body.force === true;
 
   if (intent === 'list') {

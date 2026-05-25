@@ -74,9 +74,34 @@ export function Chat() {
   const detected: Intent =
     mode !== 'auto' ? mode : llmDetected ?? (text.trim() ? classify(text) : 'thought');
 
-  // visualViewport keyboard tracking — sets --kb CSS var so the page shell
-  // shrinks from the bottom and input stays above the keyboard without
-  // pushing the whole page.
+  // Lock body scroll while chat is mounted (prevents iOS auto-scroll on focus)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const body = document.body;
+    const html = document.documentElement;
+    const prev = {
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyWidth: body.style.width,
+      bodyHeight: body.style.height,
+      htmlOverflow: html.style.overflow,
+    };
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.width = '100%';
+    body.style.height = '100%';
+    html.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = prev.bodyOverflow;
+      body.style.position = prev.bodyPosition;
+      body.style.width = prev.bodyWidth;
+      body.style.height = prev.bodyHeight;
+      html.style.overflow = prev.htmlOverflow;
+    };
+  }, []);
+
+  // visualViewport: shell tracks the EXACT visible area
+  // (handles both keyboard bottom and any iOS auto-scroll up at the top)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const vv = window.visualViewport;
@@ -85,8 +110,10 @@ export function Chat() {
     const update = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-        document.documentElement.style.setProperty('--kb', `${offset}px`);
+        const top = vv.offsetTop;
+        const bottom = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
+        document.documentElement.style.setProperty('--vv-top', `${top}px`);
+        document.documentElement.style.setProperty('--vv-bottom', `${bottom}px`);
       });
     };
     vv.addEventListener('resize', update);

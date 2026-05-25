@@ -8,10 +8,10 @@ export default async function HomePage() {
     <div
       className="fixed flex flex-col overflow-hidden"
       style={{
-        top: 0,
+        top: 'var(--vv-top, 0px)',
         left: 0,
         right: 0,
-        bottom: 'var(--kb, 0px)',
+        bottom: 'var(--vv-bottom, 0px)',
       }}
     >
       <Header username={session?.username} />

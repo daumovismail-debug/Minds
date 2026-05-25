@@ -100,8 +100,7 @@ export function Chat() {
     };
   }, []);
 
-  // visualViewport: shell tracks the EXACT visible area
-  // (handles both keyboard bottom and any iOS auto-scroll up at the top)
+  // visualViewport: только высота клавиатуры → --kb (одна переменная)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const vv = window.visualViewport;
@@ -110,8 +109,8 @@ export function Chat() {
     const update = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        document.documentElement.style.setProperty('--vv-top', `${vv.offsetTop}px`);
-        document.documentElement.style.setProperty('--vv-height', `${vv.height}px`);
+        const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        document.documentElement.style.setProperty('--kb', `${kb}px`);
       });
     };
     vv.addEventListener('resize', update);

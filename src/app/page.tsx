@@ -6,10 +6,11 @@ export default async function HomePage() {
   const session = await getCurrentSession();
   return (
     <div
-      className="fixed left-0 right-0 flex flex-col overflow-hidden"
+      className="fixed inset-0 flex flex-col overflow-hidden"
       style={{
-        top: 'var(--vv-top, 0px)',
-        height: 'var(--vv-height, 100dvh)',
+        height: '100dvh',
+        paddingBottom: 'var(--kb, 0px)',
+        transition: 'padding-bottom 220ms cubic-bezier(0.32, 0.72, 0, 1)',
       }}
     >
       <Header username={session?.username} />

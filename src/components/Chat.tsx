@@ -110,10 +110,8 @@ export function Chat() {
     const update = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const top = vv.offsetTop;
-        const bottom = Math.max(0, window.innerHeight - vv.offsetTop - vv.height);
-        document.documentElement.style.setProperty('--vv-top', `${top}px`);
-        document.documentElement.style.setProperty('--vv-bottom', `${bottom}px`);
+        document.documentElement.style.setProperty('--vv-top', `${vv.offsetTop}px`);
+        document.documentElement.style.setProperty('--vv-height', `${vv.height}px`);
       });
     };
     vv.addEventListener('resize', update);

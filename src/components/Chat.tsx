@@ -74,6 +74,31 @@ export function Chat() {
   const detected: Intent =
     mode !== 'auto' ? mode : llmDetected ?? (text.trim() ? classify(text) : 'thought');
 
+  // visualViewport keyboard tracking — sets --kb CSS var so the page shell
+  // shrinks from the bottom and input stays above the keyboard without
+  // pushing the whole page.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let raf = 0;
+    const update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        document.documentElement.style.setProperty('--kb', `${offset}px`);
+      });
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -283,15 +308,13 @@ export function Chat() {
     </div>
   );
 
-  // ─── SIMPLE STABLE LAYOUT: input pinned at top, content below ───
+  // ─── CHAT LAYOUT: results/greeting on top, input pinned at bottom ───
   return (
     <div className="flex flex-col h-full w-full mx-auto" style={{ maxWidth: '42rem' }}>
-      <div className="shrink-0 px-4 pt-3 pb-3">{inputBlock}</div>
       <div
         className={`flex-1 min-h-0 px-4 ${hasResult ? 'overflow-y-auto' : 'overflow-hidden'}`}
         style={{
           overscrollBehavior: 'contain',
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
         }}
       >
         {!hasResult ? (
@@ -364,9 +387,11 @@ export function Chat() {
 
             {answer && (
               <div>
-                <div className="text-xs text-paper-500 mb-1.5 flex items-center gap-1.5">
-                  <SparkleIcon size={11} className="text-sky-600" />
-                  <span>{answer.question}</span>
+                <div className="mb-3 px-3 py-2.5 rounded-xl bg-sky-50 border border-sky-200">
+                  <div className="text-[11px] uppercase tracking-wider text-sky-700 font-semibold flex items-center gap-1.5">
+                    <SparkleIcon size={11} /> твой вопрос
+                  </div>
+                  <div className="mt-0.5 text-sm text-paper-800 leading-snug">{answer.question}</div>
                 </div>
                 <div className="rounded-2xl bg-white border border-paper-300 p-4 whitespace-pre-wrap leading-relaxed text-paper-800 shadow-sm shadow-paper-400/20">
                   {answer.answer}
@@ -393,10 +418,13 @@ export function Chat() {
 
             {list && (
               <div>
-                <div className="text-xs text-paper-500 mb-2 flex items-center gap-1.5">
-                  <SparkleIcon size={11} className="text-accent-deep" />
-                  <span>{list.description || list.query}</span>
-                  <span className="text-paper-400">· {list.items.length}</span>
+                <div className="mb-3 px-3 py-2.5 rounded-xl bg-accent-tint border border-accent/30">
+                  <div className="text-[11px] uppercase tracking-wider text-accent-deep font-semibold flex items-center gap-1.5">
+                    <SparkleIcon size={11} /> запрос
+                  </div>
+                  <div className="mt-0.5 text-sm text-paper-800 leading-snug">
+                    {list.query} <span className="text-paper-500">· {list.items.length}</span>
+                  </div>
                 </div>
                 {list.items.length === 0 ? (
                   <div className="rounded-2xl bg-white border border-paper-300 p-6 text-center text-sm text-paper-500">
@@ -418,6 +446,12 @@ export function Chat() {
             )}
           </div>
         )}
+      </div>
+      <div
+        className="shrink-0 px-4 pt-2"
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      >
+        {inputBlock}
       </div>
     </div>
   );

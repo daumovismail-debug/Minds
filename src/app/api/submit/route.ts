@@ -78,6 +78,18 @@ export async function POST(req: Request) {
       conditions.push(`created_at < $${params.length}`);
     }
 
+    if (lq.countOnly) {
+      const countSql = `SELECT COUNT(*)::int AS count FROM thoughts WHERE ${conditions.join(' AND ')}`;
+      const { rows: countRows } = await q(countSql, params);
+      const count = (countRows[0]?.count as number) ?? 0;
+      return NextResponse.json({
+        intent: 'list',
+        query: { description: lq.description, countOnly: true },
+        count,
+        items: [],
+      });
+    }
+
     const sql = `SELECT id, content, tags, kind, done, urgent, due_at, created_at, updated_at
                    FROM thoughts
                   WHERE ${conditions.join(' AND ')}

@@ -32,6 +32,8 @@ type ListState = {
   query: string;
   description: string;
   items: ThoughtItem[];
+  count?: number;
+  countOnly?: boolean;
 };
 
 const INTENT_LABEL: Record<Intent, { label: string; color: string }> = {
@@ -217,6 +219,8 @@ export function Chat() {
         setList({
           query: t,
           description: data.query?.description ?? '',
+          countOnly: Boolean(data.query?.countOnly),
+          count: typeof data.count === 'number' ? data.count : undefined,
           items: data.items ?? [],
         });
         setText('');
@@ -447,10 +451,21 @@ export function Chat() {
                     <SparkleIcon size={11} /> запрос
                   </div>
                   <div className="mt-0.5 text-sm text-paper-800 leading-snug">
-                    {list.query} <span className="text-paper-500">· {list.items.length}</span>
+                    {list.query}
+                    {!list.countOnly && (
+                      <span className="text-paper-500"> · {list.items.length}</span>
+                    )}
                   </div>
                 </div>
-                {list.items.length === 0 ? (
+
+                {list.countOnly ? (
+                  <div className="rounded-2xl bg-white border border-paper-300 p-8 text-center shadow-sm">
+                    <div className="text-6xl sm:text-7xl font-bold bg-gradient-to-br from-accent to-accent-deep bg-clip-text text-transparent leading-none">
+                      {list.count ?? 0}
+                    </div>
+                    <div className="mt-3 text-sm text-paper-600">{list.description}</div>
+                  </div>
+                ) : list.items.length === 0 ? (
                   <div className="rounded-2xl bg-white border border-paper-300 p-6 text-center text-sm text-paper-500">
                     Ничего не нашлось по этому запросу
                   </div>

@@ -4,6 +4,7 @@ export type ListQuery = {
   done?: boolean;
   dateFrom?: Date;
   dateTo?: Date;
+  countOnly?: boolean;
   description: string;
 };
 
@@ -36,6 +37,11 @@ export function parseListQuery(text: string): ListQuery {
   const q: ListQuery = { kind: 'all', description: '' };
   const desc: string[] = [];
 
+  // Count-only query: "сколько у меня задач", "сколько мыслей" и т.п.
+  if (/\bсколько\b|\bчисло\b|\bкол(ичеств)?[оа]\b/.test(t)) {
+    q.countOnly = true;
+  }
+
   if (/задач/.test(t)) {
     q.kind = 'task';
     desc.push('задачи');
@@ -49,7 +55,7 @@ export function parseListQuery(text: string): ListQuery {
     desc.push('все записи');
   }
 
-  if (/срочн/.test(t)) {
+  if (/срочн|важн/.test(t)) {
     q.urgent = true;
     desc.push('срочные');
   }

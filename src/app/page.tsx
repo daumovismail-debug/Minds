@@ -10,7 +10,9 @@ export default async function HomePage() {
       style={{
         height: '100dvh',
         paddingBottom: 'var(--kb, 0px)',
-        transition: 'padding-bottom 220ms cubic-bezier(0.32, 0.72, 0, 1)',
+        transform: 'translateY(var(--vv-offset, 0px))',
+        transition:
+          'padding-bottom 220ms cubic-bezier(0.32, 0.72, 0, 1), transform 100ms linear',
       }}
     >
       <Header username={session?.username} />

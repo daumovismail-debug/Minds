@@ -100,7 +100,7 @@ export function Chat() {
     };
   }, []);
 
-  // visualViewport: только высота клавиатуры → --kb (одна переменная)
+  // visualViewport: трек клавы (--kb) + компенсация iOS auto-scroll (--vv-offset)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const vv = window.visualViewport;
@@ -111,6 +111,7 @@ export function Chat() {
       raf = requestAnimationFrame(() => {
         const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
         document.documentElement.style.setProperty('--kb', `${kb}px`);
+        document.documentElement.style.setProperty('--vv-offset', `${vv.offsetTop}px`);
       });
     };
     vv.addEventListener('resize', update);

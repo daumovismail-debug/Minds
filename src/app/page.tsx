@@ -9,6 +9,7 @@ export default async function HomePage() {
       className="fixed left-0 right-0 top-0 flex flex-col overflow-hidden"
       style={{
         height: 'var(--vv-h, 100dvh)',
+        transform: 'translateY(var(--vv-y, 0px))',
       }}
     >
       <Header username={session?.username} />

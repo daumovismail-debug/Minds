@@ -176,16 +176,20 @@ export function ThoughtCard({ item, onDelete, onUpdate }: Props) {
         </div>
 
         {!editing && (
-          <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex flex-col gap-1">
+          <div className="sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity flex flex-col gap-1 shrink-0">
             <button
+              type="button"
               onClick={() => setEditing(true)}
               className="text-xs px-2 py-1 rounded-md text-paper-600 hover:bg-paper-200/60 hover:text-paper-800"
+              aria-label="изменить"
             >
               изменить
             </button>
             <button
+              type="button"
               onClick={del}
               className="text-xs px-2 py-1 rounded-md text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center gap-1"
+              aria-label="удалить"
             >
               <TrashIcon size={12} />
             </button>

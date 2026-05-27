@@ -24,9 +24,75 @@ export type AnswerInput = {
   thoughts: Array<{ id: number; content: string; created_at: string; similarity: number }>;
 };
 
-export type IntentResult = 'thought' | 'question' | 'task' | 'list';
+export type InsightInput = {
+  request: string;
+  thoughts: Array<{ id: number; content: string; created_at: string }>;
+  totals: { thoughts: number; tasks: number; tasks_done: number; tasks_urgent: number };
+};
 
-const CLASSIFIER_PROMPT = `Ты определяешь тип сообщения. Ответ — РОВНО одно слово БЕЗ кавычек и пояснений: task ИЛИ question ИЛИ list ИЛИ thought.
+const INSIGHT_PROMPT = `Ты — личный аналитик пользователя. У тебя есть его записи — мысли и задачи. Найди в них интересные паттерны, темы, противоречия, повторяющиеся идеи.
+
+КАК ОТВЕЧАТЬ:
+1. Короткое вступление (1-2 фразы) — что ты заметил в целом.
+2. Маркированный список из 3-6 наблюдений. Для каждого: тема + пример со ссылкой [#id от ДАТА] + что это говорит о пользователе.
+3. В конце блок "📌 ИТОГ" — главный инсайт на 1-2 фразы + конкретное действие.
+
+ЧТО ИСКАТЬ:
+- Темы которые повторяются чаще всего
+- Противоречия между записями
+- Эволюция взглядов (раньше думал X, теперь Y)
+- Невыполненные задачи которые висят
+- Принципы которые пользователь сам себе сформулировал
+- Что-то характерное для этого человека
+
+СТРОГИЕ ПРАВИЛА:
+- Только то что есть в записях. НИЧЕГО от себя.
+- Цитируй [#id от ДАТА].
+- Если записей мало (<5) — скажи прямо: "Записей пока мало, чтобы видеть паттерны. Запиши ещё несколько мыслей."
+- Отвечай на языке запроса.`;
+
+export async function generateInsight({ request, thoughts, totals }: InsightInput): Promise<string> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error('GROQ_API_KEY is not configured');
+
+  const context =
+    thoughts.length === 0
+      ? '(записей пока нет)'
+      : thoughts
+          .map(
+            (t) =>
+              `#${t.id} от ${new Date(t.created_at).toLocaleDateString('ru-RU')}:\n${t.content}`,
+          )
+          .join('\n\n---\n\n');
+
+  const stats = `Статистика: мыслей ${totals.thoughts}, задач ${totals.tasks} (из них выполнено ${totals.tasks_done}, срочных ${totals.tasks_urgent}).`;
+  const userPrompt = `Запрос пользователя: ${request}\n\n${stats}\n\nЗаписи пользователя:\n\n${context}`;
+
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: CHAT_MODEL,
+      temperature: 0.6,
+      messages: [
+        { role: 'system', content: INSIGHT_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Groq ${res.status}: ${body.slice(0, 200)}`);
+  }
+  const data = (await res.json()) as GroqResponse;
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error('Groq вернул пустой ответ');
+  return text;
+}
+
+export type IntentResult = 'thought' | 'question' | 'task' | 'list' | 'insight';
+
+const CLASSIFIER_PROMPT = `Ты определяешь тип сообщения. Ответ — РОВНО одно слово БЕЗ кавычек и пояснений: task ИЛИ question ИЛИ list ИЛИ insight ИЛИ thought.
 
 ТИПЫ:
 
@@ -59,6 +125,14 @@ list — пользователь хочет УВИДЕТЬ свои уже со
   "мои задачи на сегодня" → list
   "найди мне записи за вчера" → list
   "выведи всё" → list
+
+insight — пользователь просит АНАЛИЗ или НАБЛЮДЕНИЯ обо всех своих записях вместе. Признаки: "инсайт", "какие у меня паттерны", "что ты обо мне видишь", "проанализируй меня", "что заметно в моих мыслях", "что я часто пишу", "общий обзор".
+Примеры:
+  "дай инсайт" → insight
+  "какие у меня паттерны?" → insight
+  "что ты думаешь обо мне" → insight
+  "проанализируй мои записи" → insight
+  "что я чаще всего пишу" → insight
 
 thought — мысль, идея, наблюдение, вывод, принцип, ощущение, рефлексия о себе.
 Примеры:
@@ -108,8 +182,10 @@ export async function classifyIntent(text: string): Promise<IntentResult> {
   if (clean === 'task' || clean === 'задача') return 'task';
   if (clean === 'question' || clean === 'вопрос') return 'question';
   if (clean === 'list' || clean === 'список') return 'list';
+  if (clean === 'insight' || clean === 'инсайт') return 'insight';
   if (clean === 'thought' || clean === 'мысль') return 'thought';
   // fallback parse: look for any of the keywords in the raw response
+  if (raw.includes('insight')) return 'insight';
   if (raw.includes('task')) return 'task';
   if (raw.includes('question')) return 'question';
   if (raw.includes('list')) return 'list';

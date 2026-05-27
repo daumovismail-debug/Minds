@@ -28,6 +28,12 @@ type AnswerState = {
   sources: Source[];
 };
 
+type InsightState = {
+  request: string;
+  answer: string;
+  totals: { thoughts: number; tasks: number; tasks_done: number; tasks_urgent: number };
+};
+
 type ListState = {
   query: string;
   description: string;
@@ -41,6 +47,7 @@ const INTENT_LABEL: Record<Intent, { label: string; color: string }> = {
   question: { label: 'вопрос', color: 'text-sky-600' },
   task: { label: 'задача', color: 'text-amber-600' },
   list: { label: 'список', color: 'text-emerald-700' },
+  insight: { label: 'инсайт', color: 'text-violet-600' },
 };
 
 const ACTION_LABEL: Record<Intent, string> = {
@@ -48,6 +55,7 @@ const ACTION_LABEL: Record<Intent, string> = {
   question: 'найду ответ',
   task: 'добавлю в задачи',
   list: 'покажу выборку',
+  insight: 'проанализирую все записи',
 };
 
 const MODE_CHIPS: Array<{ key: Mode; label: string; active: string }> = [
@@ -65,6 +73,7 @@ export function Chat() {
   const [classifying, setClassifying] = useState(false);
   const [llmDetected, setLlmDetected] = useState<Intent | null>(null);
   const [answer, setAnswer] = useState<AnswerState | null>(null);
+  const [insight, setInsight] = useState<InsightState | null>(null);
   const [list, setList] = useState<ListState | null>(null);
   const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +81,7 @@ export function Chat() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastClassifiedRef = useRef<string>('');
 
-  const hasResult = Boolean(answer || list || duplicate || error);
+  const hasResult = Boolean(answer || insight || list || duplicate || error);
   const detected: Intent =
     mode !== 'auto' ? mode : llmDetected ?? (text.trim() ? classify(text) : 'thought');
 
@@ -176,6 +185,7 @@ export function Chat() {
 
   function clearResults() {
     setAnswer(null);
+    setInsight(null);
     setList(null);
     setDuplicate(null);
     setError(null);
@@ -211,7 +221,15 @@ export function Chat() {
         return;
       }
 
-      if (data.intent === 'question') {
+      if (data.intent === 'insight') {
+        setInsight({
+          request: t,
+          answer: data.answer,
+          totals: data.totals ?? { thoughts: 0, tasks: 0, tasks_done: 0, tasks_urgent: 0 },
+        });
+        setText('');
+        setLlmDetected(null);
+      } else if (data.intent === 'question') {
         setAnswer({ question: t, answer: data.answer, sources: data.sources ?? [] });
         setText('');
         setLlmDetected(null);
@@ -409,6 +427,38 @@ export function Chat() {
                   >
                     Всё равно сохранить
                   </button>
+                </div>
+              </div>
+            )}
+
+            {insight && (
+              <div>
+                <div className="mb-3 px-3 py-2.5 rounded-xl bg-violet-50 border border-violet-200">
+                  <div className="text-[11px] uppercase tracking-wider text-violet-700 font-semibold flex items-center gap-1.5">
+                    <SparkleIcon size={11} /> инсайт
+                  </div>
+                  <div className="mt-0.5 text-sm text-paper-800 leading-snug">{insight.request}</div>
+                </div>
+                <div className="mb-3 grid grid-cols-2 gap-2 text-center">
+                  <div className="rounded-xl bg-white border border-paper-300 p-3">
+                    <div className="text-2xl font-bold text-accent-deep">{insight.totals.thoughts}</div>
+                    <div className="text-[11px] text-paper-500 uppercase tracking-wider">мысли</div>
+                  </div>
+                  <div className="rounded-xl bg-white border border-paper-300 p-3">
+                    <div className="text-2xl font-bold text-amber-600">
+                      {insight.totals.tasks}
+                      <span className="text-sm text-paper-400">
+                        {' '}
+                        / {insight.totals.tasks_done}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-paper-500 uppercase tracking-wider">
+                      задач / готово
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-white border border-paper-300 p-4 whitespace-pre-wrap leading-relaxed text-paper-800 shadow-sm shadow-paper-400/20">
+                  {insight.answer}
                 </div>
               </div>
             )}

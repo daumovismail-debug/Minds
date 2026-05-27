@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { q, toVectorLiteral } from '@/lib/db';
 import { embed, embedQuery } from '@/lib/embeddings';
-import { answerFromThoughts, classifyIntent } from '@/lib/llm';
+import { answerFromThoughts, classifyIntent, generateInsight } from '@/lib/llm';
 import { getCurrentSession } from '@/lib/auth';
 import { classify, isUrgent, type Intent } from '@/lib/classify';
 import { parseListQuery } from '@/lib/list-parser';
@@ -37,7 +37,8 @@ export async function POST(req: Request) {
     manualMode === 'thought' ||
     manualMode === 'question' ||
     manualMode === 'task' ||
-    manualMode === 'list'
+    manualMode === 'list' ||
+    manualMode === 'insight'
   ) {
     intent = manualMode;
   } else if (text.endsWith('?')) {
@@ -102,6 +103,47 @@ export async function POST(req: Request) {
       query: { description: lq.description },
       items: rows,
     });
+  }
+
+  if (intent === 'insight') {
+    try {
+      const { rows: items } = await q(
+        `SELECT id, content, created_at
+           FROM thoughts
+          WHERE user_id = $1
+          ORDER BY created_at DESC
+          LIMIT 80`,
+        [userId],
+      );
+      const { rows: totalsRows } = await q(
+        `SELECT
+            COUNT(*) FILTER (WHERE kind = 'thought')::int AS thoughts,
+            COUNT(*) FILTER (WHERE kind = 'task')::int AS tasks,
+            COUNT(*) FILTER (WHERE kind = 'task' AND done = TRUE)::int AS tasks_done,
+            COUNT(*) FILTER (WHERE kind = 'task' AND urgent = TRUE AND done = FALSE)::int AS tasks_urgent
+         FROM thoughts WHERE user_id = $1`,
+        [userId],
+      );
+      const totals = totalsRows[0] ?? { thoughts: 0, tasks: 0, tasks_done: 0, tasks_urgent: 0 };
+      const answer = await generateInsight({
+        request: text,
+        thoughts: items.map((r) => ({
+          id: r.id as number,
+          content: r.content as string,
+          created_at: r.created_at as string,
+        })),
+        totals: {
+          thoughts: Number(totals.thoughts) || 0,
+          tasks: Number(totals.tasks) || 0,
+          tasks_done: Number(totals.tasks_done) || 0,
+          tasks_urgent: Number(totals.tasks_urgent) || 0,
+        },
+      });
+      return NextResponse.json({ intent: 'insight', answer, totals });
+    } catch (e) {
+      console.error('insight error:', e);
+      return NextResponse.json({ intent: 'insight', error: llmErrorMessage(e) }, { status: 502 });
+    }
   }
 
   if (intent === 'question') {

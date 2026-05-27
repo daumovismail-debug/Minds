@@ -35,7 +35,10 @@ const RU_REFLECTIVE_THOUGHT =
 const URGENT_PATTERNS =
   /(\bсрочн|\basap\b|немедленно|критичн|поскорее|\bгорит\b|\bгоряч|сегодня\s+обязательно|до\s+конца\s+дня|сейчас\s+же|очень\s+нужно|очень\s+важн|обязательно\s+сегодня)/i;
 
-export type Intent = 'thought' | 'question' | 'task' | 'list';
+const INSIGHT_PATTERNS =
+  /(инсайт|инсайты|паттерн|тренд[ыя]?|что\s+(обо?\s+мне|про\s+меня)|что\s+ты\s+(видишь|думаешь)\s+обо?\s+мне|что\s+заметно|проанализируй|общий\s+обзор|обзор\s+меня|что\s+я\s+чаще\s+пишу|что\s+у\s+меня\s+часто|анализ\s+моих)/i;
+
+export type Intent = 'thought' | 'question' | 'task' | 'list' | 'insight';
 
 export function isQuestion(text: string): boolean {
   const t = text.trim().toLowerCase();
@@ -74,7 +77,12 @@ export function isUrgent(text: string): boolean {
   return URGENT_PATTERNS.test(text);
 }
 
+export function isInsightQuery(text: string): boolean {
+  return INSIGHT_PATTERNS.test(text.toLowerCase());
+}
+
 export function classify(text: string): Intent {
+  if (isInsightQuery(text)) return 'insight';
   if (isListQuery(text)) return 'list';
   if (isQuestion(text)) return 'question';
   if (isTask(text)) return 'task';
